@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Name": "MyGreatApp",
+  "LastSavedStudioVersion": "26.6.4",
+  "ActiveProject": "MyGreatApp",
+  "Projects": [
+    {
+      "Path": "Projects/MyGreatApp",
+      "Name": "MyGreatApp",
+      "Type": "Desktop"
+    }
+  ],
+  "EmptyFolders": [],
+  "AiCustomInstructions": ""
+}
