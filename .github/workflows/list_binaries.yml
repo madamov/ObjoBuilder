@@ -1,0 +1,18 @@
+name: List SFTP Directory
+
+on:
+  workflow_dispatch:
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: List objo_binaries
+        env:
+          USERNAME: ${{ secrets.BINARIES_USER }}
+          PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
+        run: |
+          curl -u "$USERNAME:$PASSWORD" \
+            "sftp://iad1-shared-b8-11.dreamhost.com/home/objo_user/objo.adamov.rs/objo_binaries/"
+            
