@@ -1,0 +1,100 @@
+name: Download Latest Objo Binary
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-binary:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            prefix: objo_linux
+            install_dir: /opt/objo
+          - os: macos-latest
+            prefix: objo_mac
+            install_dir: /Applications
+          - os: windows-latest
+            prefix: objo_win
+            install_dir: /c/Program Files/Objo
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Install tools on Ubuntu
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full
+
+      - name: Install tools on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install curl p7zip
+          echo "$(brew --prefix curl)/bin" >> "$GITHUB_PATH"
+
+      - name: Prepare SSH known_hosts
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H iad1-shared-b8-11.dreamhost.com >> ~/.ssh/known_hosts
+
+      - name: Download latest archive
+        shell: bash
+        env:
+          USERNAME: ${{ secrets.BINARIES_USER }}
+          PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
+          PREFIX: ${{ matrix.prefix }}
+        run: |
+          REMOTE_DIR="/home/$USERNAME/objo.adamov.rs/objo_binaries"
+          BASE_URL="sftp://iad1-shared-b8-11.dreamhost.com${REMOTE_DIR}/"
+
+          echo "Listing files for $PREFIX..."
+
+          LATEST_FILE=$(
+            curl --fail --silent --show-error --list-only \
+              -u "$USERNAME:$PASSWORD" \
+              "$BASE_URL" |
+            grep -E "^${PREFIX}_[0-9_]+\.7z$" |
+            sort -V |
+            tail -n 1
+          )
+
+          if [ -z "$LATEST_FILE" ]; then
+            echo "No archive found for prefix: $PREFIX"
+            exit 1
+          fi
+
+          echo "Latest archive: $LATEST_FILE"
+
+          curl --fail --show-error \
+            -u "$USERNAME:$PASSWORD" \
+            -o "$LATEST_FILE" \
+            "${BASE_URL}${LATEST_FILE}"
+
+          echo "ARCHIVE=$LATEST_FILE" >> "$GITHUB_ENV"
+
+      - name: Extract archive
+        shell: bash
+        env:
+          INSTALL_DIR: ${{ matrix.install_dir }}
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            export PATH="$PATH:/c/Program Files/7-Zip"
+            mkdir -p "$INSTALL_DIR"
+            7z x "$ARCHIVE" "-o$INSTALL_DIR" -y
+          else
+            sudo mkdir -p "$INSTALL_DIR"
+            sudo 7z x "$ARCHIVE" "-o$INSTALL_DIR" -y
+          fi
+
+      - name: Show installed files
+        shell: bash
+        env:
+          INSTALL_DIR: ${{ matrix.install_dir }}
+        run: |
+          ls -la "$INSTALL_DIR"
+          
