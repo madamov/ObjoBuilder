@@ -9,18 +9,30 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - ubuntu-latest
           - macos-latest
           - windows-latest
-          - ubuntu-latest
 
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Install curl with SFTP support on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install curl
+          echo "$(brew --prefix curl)/bin" >> "$GITHUB_PATH"
+
       - name: Add SFTP host key
         shell: bash
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H iad1-shared-b8-11.dreamhost.com >> ~/.ssh/known_hosts
+
+      - name: Check curl protocols
+        shell: bash
+        run: |
+          curl -V
 
       - name: List objo_binaries
         shell: bash
