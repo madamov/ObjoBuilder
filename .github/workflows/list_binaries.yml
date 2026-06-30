@@ -4,16 +4,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  list:
-    runs-on: ubuntu-latest
+  list-sftp:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+          - ubuntu-latest
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Add SFTP host key
+        shell: bash
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H iad1-shared-b8-11.dreamhost.com >> ~/.ssh/known_hosts
 
       - name: List objo_binaries
+        shell: bash
         env:
           USERNAME: ${{ secrets.BINARIES_USER }}
           PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
@@ -21,4 +31,3 @@ jobs:
           curl --fail --show-error --list-only \
             -u "$USERNAME:$PASSWORD" \
             "sftp://iad1-shared-b8-11.dreamhost.com/home/$USERNAME/objo.adamov.rs/objo_binaries/"
-            
