@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Install tools
         run: |
-          brew install p7zip lftp
+          brew install lftp
 
       - name: Get latest version
         id: version
@@ -149,9 +149,9 @@ jobs:
 
           echo "Creating 7z archives..."
 
-          7zz a -t7z "archives/objo_mac_${VERSION_UNDERSCORE}.7z" mac/objo
-          7zz a -t7z "archives/objo_linux_${VERSION_UNDERSCORE}.7z" linux/objo
-          7zz a -t7z "archives/objo_win_${VERSION_UNDERSCORE}.7z" windows/objo.exe
+          7z a -t7z "archives/objo_mac_${VERSION_UNDERSCORE}.7z" mac/objo
+          7z a -t7z "archives/objo_linux_${VERSION_UNDERSCORE}.7z" linux/objo
+          7z a -t7z "archives/objo_win_${VERSION_UNDERSCORE}.7z" windows/objo.exe
 
           ls -lh archives
 
