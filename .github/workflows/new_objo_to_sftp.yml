@@ -161,7 +161,7 @@ jobs:
 
           lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" "sftp://$SFTP_HOST" <<EOF
           set sftp:auto-confirm yes
-          mkdir -p "$SFTP_REMOTE_DIR"
+          # mkdir -p "$SFTP_REMOTE_DIR"
           cd "$SFTP_REMOTE_DIR"
           mput archives/*.7z
           bye
