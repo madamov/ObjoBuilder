@@ -46,7 +46,21 @@ jobs:
             echo "/opt/objo" >> "$GITHUB_PATH"
           fi
 
+      - name: Activate Objo license
+        shell: bash
+        env:
+          OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
+        run: |
+          LICENSE_FILE="$RUNNER_TEMP/objo-license-key.txt"
+
+          printf '%s' "$OBJO_LICENSE" > "$LICENSE_FILE"
+
+          objo license activate --key-file "$LICENSE_FILE"
+
+          rm -f "$LICENSE_FILE"
+
       - name: Check Objo solution syntax
         shell: bash
         run: |
           objo check MyGreatApp.objosln
+          
