@@ -1,0 +1,168 @@
+name: Package Objo Executables
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package-and-upload:
+    runs-on: macos-latest
+
+    env:
+      SFTP_HOST: iad1-shared-b8-11.dreamhost.com
+      SFTP_USERNAME: ${{ secrets.BINARIES_USER }}
+      SFTP_PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
+      SFTP_REMOTE_DIR: /home/objo_user/objo.adamov.rs/objo_binaries
+
+    steps:
+      - name: Install tools
+        run: |
+          brew install p7zip lftp
+
+      - name: Get latest version
+        id: version
+        run: |
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
+
+          if [[ -z "$VERSION" ]]; then
+            echo "Could not detect latest version" >&2
+            exit 1
+          fi
+
+          VERSION_UNDERSCORE="${VERSION//./_}"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_underscore=$VERSION_UNDERSCORE" >> "$GITHUB_OUTPUT"
+
+          echo "Latest version: $VERSION"
+
+      - name: Restore downloaded installers
+        uses: actions/cache@v4
+        with:
+          path: downloads
+          key: objo-installers-${{ steps.version.outputs.version }}
+
+      - name: Download, extract and archive executables
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_UNDERSCORE="${{ steps.version.outputs.version_underscore }}"
+
+          DOWNLOAD_BASE="https://downloads.objo.dev/releases"
+
+          mkdir -p downloads extracted mac linux windows archives
+
+          MAC_FILE="Objo-Studio-${VERSION}-macOS-arm64.dmg"
+          LINUX_FILE="Objo-Studio-${VERSION}-linux-x64.tar.gz"
+          WIN_FILE="Objo-Studio-${VERSION}-win-x64.msix"
+
+          download_if_missing() {
+            local url="$1"
+            local file="$2"
+
+            if [[ -f "$file" ]]; then
+              echo "Using existing $(basename "$file")"
+            else
+              echo "Downloading $(basename "$file")..."
+              curl -fL "$url" -o "$file"
+            fi
+          }
+
+          download_if_missing "${DOWNLOAD_BASE}/${VERSION}/${MAC_FILE}" "downloads/${MAC_FILE}"
+          download_if_missing "${DOWNLOAD_BASE}/${VERSION}/${LINUX_FILE}" "downloads/${LINUX_FILE}"
+          download_if_missing "${DOWNLOAD_BASE}/${VERSION}/${WIN_FILE}" "downloads/${WIN_FILE}"
+
+          echo "Extracting macOS executable..."
+
+          if [[ ! -f mac/objo ]]; then
+            MOUNT_POINT=$(
+              hdiutil attach "downloads/${MAC_FILE}" -nobrowse |
+              awk '/\/Volumes\// {print substr($0, index($0, "/Volumes/")); exit}'
+            )
+
+            if [[ -z "$MOUNT_POINT" ]]; then
+              echo "Could not determine DMG mount point" >&2
+              exit 1
+            fi
+
+            MAC_EXE=$(
+              find "$MOUNT_POINT" \
+                -path "*/Objo Studio.app/Contents/MacOS/objo" \
+                -type f |
+              head -n1
+            )
+
+            if [[ -z "$MAC_EXE" ]]; then
+              echo "Could not find macOS objo executable inside DMG" >&2
+              find "$MOUNT_POINT" -maxdepth 4
+              hdiutil detach "$MOUNT_POINT" -quiet
+              exit 1
+            fi
+
+            cp "$MAC_EXE" mac/objo
+            chmod +x mac/objo
+
+            hdiutil detach "$MOUNT_POINT" -quiet
+          fi
+
+          echo "Extracting Linux executable..."
+
+          if [[ ! -f linux/objo ]]; then
+            rm -rf extracted/linux
+            mkdir -p extracted/linux
+
+            tar -xzf "downloads/${LINUX_FILE}" -C extracted/linux
+
+            LINUX_EXE=$(find extracted/linux -type f -name objo | head -n1)
+
+            if [[ -z "$LINUX_EXE" ]]; then
+              echo "Could not find Linux objo executable" >&2
+              exit 1
+            fi
+
+            cp "$LINUX_EXE" linux/objo
+            chmod +x linux/objo
+          fi
+
+          echo "Extracting Windows executable..."
+
+          if [[ ! -f windows/objo.exe ]]; then
+            rm -rf extracted/windows
+            mkdir -p extracted/windows
+
+            unzip -q "downloads/${WIN_FILE}" -d extracted/windows
+
+            WIN_EXE=$(find extracted/windows -type f -iname objo.exe | head -n1)
+
+            if [[ -z "$WIN_EXE" ]]; then
+              echo "Could not find Windows objo.exe" >&2
+              exit 1
+            fi
+
+            cp "$WIN_EXE" windows/objo.exe
+          fi
+
+          echo "Creating 7z archives..."
+
+          7zz a -t7z "archives/objo_mac_${VERSION_UNDERSCORE}.7z" mac/objo
+          7zz a -t7z "archives/objo_linux_${VERSION_UNDERSCORE}.7z" linux/objo
+          7zz a -t7z "archives/objo_win_${VERSION_UNDERSCORE}.7z" windows/objo.exe
+
+          ls -lh archives
+
+      - name: Upload archives to SFTP
+        run: |
+          set -euo pipefail
+
+          lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" "sftp://$SFTP_HOST" <<EOF
+          set sftp:auto-confirm yes
+          mkdir -p "$SFTP_REMOTE_DIR"
+          cd "$SFTP_REMOTE_DIR"
+          mput archives/*.7z
+          bye
+          EOF
