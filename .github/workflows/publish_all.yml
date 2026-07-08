@@ -14,9 +14,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /opt/objo
-          key: objo-mac-
+          key: objo-macOS-
           restore-keys: |
-            objo-mac-
+            objo-macOS-
 
       - name: Add Objo to PATH
         run: |
@@ -58,9 +58,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /opt/objo
-          key: objo-linux-
+          key: objo-Linux-
           restore-keys: |
-            objo-linux-
+            objo-Linux-
 
       - name: Add Objo to PATH
         run: |
@@ -101,9 +101,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: C:\objo
-          key: objo-windows-
+          key: objo-Windows-
           restore-keys: |
-            objo-windows-
+            objo-Windows-
 
       - name: Add Objo to PATH
         shell: pwsh
