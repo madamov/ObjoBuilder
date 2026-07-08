@@ -37,7 +37,6 @@ jobs:
           mkdir -p "$HOME/Documents/Publish"
 
           objo publish "MyGreatApp.objosln" \
-            --project "My Great App" \
             --rid osx-arm64 \
             --rid osx-x64 \
             --output "$HOME/Documents/Publish"
