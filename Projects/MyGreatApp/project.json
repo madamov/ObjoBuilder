@@ -5,10 +5,15 @@
   "BuildSettings": {
     "AppName": "",
     "MajorVersion": 1,
-    "MinorVersion": 0,
+    "MinorVersion": 1,
     "PatchVersion": 0,
     "CommandLineArgs": "",
-    "TargetRids": [],
+    "TargetRids": [
+      "win-x64",
+      "osx-arm64",
+      "osx-x64",
+      "linux-x64"
+    ],
     "DefaultWindow": "Window1"
   },
   "Metadata": {
@@ -22,6 +27,11 @@
     "DesktopBehavior": {
       "AllowMultipleInstances": false,
       "TrackRecentDocuments": true
+    },
+    "ControlLibrary": {
+      "ViewMode": "Alphabetical",
+      "IncludeUiControlSubclasses": true,
+      "IncludeOptInClasses": false
     },
     "FileAssociations": [],
     "UrlSchemes": [],
