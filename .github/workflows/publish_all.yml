@@ -1,0 +1,137 @@
+name: Publish Objo Application
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached Objo binary
+        uses: actions/cache/restore@v4
+        with:
+          path: /opt/objo
+          key: objo-mac-
+          restore-keys: |
+            objo-mac-
+
+      - name: Add Objo to PATH
+        run: |
+          chmod +x /opt/objo/mac/objo
+          echo "/opt/objo/mac" >> "$GITHUB_PATH"
+
+      - name: Activate Objo license
+        env:
+          OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
+        run: |
+          LICENSE_FILE="$RUNNER_TEMP/objo-license-key.txt"
+          printf '%s' "$OBJO_LICENSE" > "$LICENSE_FILE"
+          objo license activate --key-file "$LICENSE_FILE"
+          rm -f "$LICENSE_FILE"
+
+      - name: Publish macOS app
+        run: |
+          mkdir -p "$HOME/Documents/Publish"
+
+          objo publish "MyGreatApp.objosln" \
+            --project "My Great App" \
+            --rid osx-arm64 \
+            --rid osx-x64 \
+            --output "$HOME/Documents/Publish"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: objo-macos-publish
+          path: ~/Documents/Publish/*.dmg
+
+  publish-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached Objo binary
+        uses: actions/cache/restore@v4
+        with:
+          path: /opt/objo
+          key: objo-linux-
+          restore-keys: |
+            objo-linux-
+
+      - name: Add Objo to PATH
+        run: |
+          chmod +x /opt/objo/linux/objo
+          echo "/opt/objo/linux" >> "$GITHUB_PATH"
+
+      - name: Activate Objo license
+        env:
+          OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
+        run: |
+          LICENSE_FILE="$RUNNER_TEMP/objo-license-key.txt"
+          printf '%s' "$OBJO_LICENSE" > "$LICENSE_FILE"
+          objo license activate --key-file "$LICENSE_FILE"
+          rm -f "$LICENSE_FILE"
+
+      - name: Publish Linux app
+        run: |
+          mkdir -p Publish
+
+          objo publish "MyGreatApp.objosln" \
+            --project "My Great App" \
+            --rid linux-x64 \
+            --output Publish
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: objo-linux-publish
+          path: Publish/*.tar.gz
+
+  publish-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached Objo binary
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\objo
+          key: objo-windows-
+          restore-keys: |
+            objo-windows-
+
+      - name: Add Objo to PATH
+        shell: pwsh
+        run: |
+          echo "C:\objo\windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Activate Objo license
+        shell: pwsh
+        env:
+          OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
+        run: |
+          $licenseFile = Join-Path $env:RUNNER_TEMP "objo-license-key.txt"
+          Set-Content -Path $licenseFile -Value $env:OBJO_LICENSE -NoNewline
+          objo.exe license activate --key-file $licenseFile
+          Remove-Item $licenseFile -Force
+
+      - name: Publish Windows app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path Publish | Out-Null
+
+          objo.exe publish "MyGreatApp.objosln" `
+            --project "My Great App" `
+            --rid win-x64 `
+            --output Publish
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: objo-windows-publish
+          path: Publish/*.msix
