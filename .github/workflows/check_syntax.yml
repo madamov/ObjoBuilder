@@ -3,11 +3,6 @@ name: Check Objo Solution Syntax
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches:
-      - develop
-      - main
-      - release
 
 jobs:
   check-objo:
