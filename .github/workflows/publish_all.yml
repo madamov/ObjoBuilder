@@ -13,7 +13,7 @@ jobs:
       - name: Restore cached Objo binary
         uses: actions/cache/restore@v4
         with:
-          path: /opt/objo
+          path: /Applications/Objo
           key: objo-macOS-
           restore-keys: |
             objo-macOS-
@@ -63,6 +63,15 @@ jobs:
           restore-keys: |
             objo-Linux-
 
+      - name: Verify Objo binary exists
+        shell: bash
+        run: |
+          if [ ! -f /opt/objo/linux/objo ] && [ ! -f /opt/objo/objo ]; then
+            echo "Objo binary not found in cache"
+            echo "Run the Cache Latest Objo Binary workflow first."
+            exit 1
+          fi
+
       - name: Add Objo to PATH
         run: |
           chmod +x /opt/objo/linux/objo
@@ -102,7 +111,7 @@ jobs:
       - name: Restore cached Objo binary
         uses: actions/cache/restore@v4
         with:
-          path: C:\objo
+          path: C:/Objo
           key: objo-Windows-
           restore-keys: |
             objo-Windows-
