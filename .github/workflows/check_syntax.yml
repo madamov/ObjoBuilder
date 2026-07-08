@@ -63,4 +63,4 @@ jobs:
         shell: bash
         run: |
           objo check MyGreatApp.objosln
-          
+          objo license deactivate
