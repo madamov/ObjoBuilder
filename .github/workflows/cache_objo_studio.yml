@@ -1,0 +1,141 @@
+name: Cache Objo Studio
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cache-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Get latest version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Objo Studio cache
+        id: cache-objo
+        uses: actions/cache@v4
+        with:
+          path: /Applications/Objo Studio.app
+          key: objo-studio-macos-${{ steps.version.outputs.version }}
+
+      - name: Download and install Objo Studio
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          DMG="Objo-Studio-${VERSION}-macOS-arm64.dmg"
+          URL="https://downloads.objo.dev/releases/${VERSION}/${DMG}"
+
+          curl -fL "$URL" -o "$DMG"
+
+          MOUNT_POINT=$(
+            hdiutil attach "$DMG" -nobrowse |
+            awk '/\/Volumes\// {print substr($0, index($0, "/Volumes/")); exit}'
+          )
+
+          if [[ -z "$MOUNT_POINT" ]]; then
+            echo "Could not determine DMG mount point" >&2
+            exit 1
+          fi
+
+          APP_PATH=$(find "$MOUNT_POINT" -maxdepth 2 -name "Objo Studio.app" -type d | head -n1)
+
+          if [[ -z "$APP_PATH" ]]; then
+            echo "Could not find Objo Studio.app inside DMG" >&2
+            hdiutil detach "$MOUNT_POINT" -quiet
+            exit 1
+          fi
+
+          rm -rf "/Applications/Objo Studio.app"
+          cp -R "$APP_PATH" /Applications/
+
+          hdiutil detach "$MOUNT_POINT" -quiet
+
+  cache-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Objo Studio cache
+        id: cache-objo
+        uses: actions/cache@v4
+        with:
+          path: /opt/objo-studio
+          key: objo-studio-linux-${{ steps.version.outputs.version }}
+
+      - name: Download and extract Objo Studio
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="Objo-Studio-${VERSION}-linux-x64.tar.gz"
+          URL="https://downloads.objo.dev/releases/${VERSION}/${ARCHIVE}"
+
+          mkdir -p /opt/objo-studio
+
+          curl -fL "$URL" -o "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C /opt/objo-studio
+
+  cache-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Get latest version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Objo Studio cache
+        id: cache-objo
+        uses: actions/cache@v4
+        with:
+          path: C:\Objo
+          key: objo-studio-windows-${{ steps.version.outputs.version }}
+
+      - name: Download and extract Objo Studio portable
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $zip = "Objo-Studio-$version-win-x64-portable.zip"
+          $url = "https://downloads.objo.dev/releases/$version/$zip"
+
+          New-Item -ItemType Directory -Force -Path "C:\Objo" | Out-Null
+
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath "C:\Objo" -Force
+          
