@@ -41,6 +41,7 @@ jobs:
             --rid osx-arm64 \
             --rid osx-x64 \
             --output "$HOME/Documents/Publish"
+          objo license deactivate
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -84,6 +85,7 @@ jobs:
             --project "My Great App" \
             --rid linux-x64 \
             --output Publish
+          objo license deactivate
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -129,6 +131,7 @@ jobs:
             --project "My Great App" `
             --rid win-x64 `
             --output Publish
+          objo.exe license deactivate
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
