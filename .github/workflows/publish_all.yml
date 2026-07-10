@@ -57,11 +57,41 @@ jobs:
             --rid osx-x64 \
             --output "$HOME/Documents/Publish"
 
-      - name: Upload macOS artifact
+      - name: Rename macOS disk images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PUBLISH_DIR="$HOME/Documents/Publish"
+          ARTIFACT_DIR="$PUBLISH_DIR/artifacts"
+
+          mkdir -p "$ARTIFACT_DIR"
+
+          ARM_DMG="$PUBLISH_DIR/macOS-Apple-Silicon/MyGreatApp.dmg"
+          INTEL_DMG="$PUBLISH_DIR/macOS-Intel/MyGreatApp.dmg"
+
+          if [[ ! -f "$ARM_DMG" ]]; then
+            echo "Apple Silicon DMG not found: $ARM_DMG" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$INTEL_DMG" ]]; then
+            echo "Intel DMG not found: $INTEL_DMG" >&2
+            exit 1
+          fi
+
+          cp "$ARM_DMG" "$ARTIFACT_DIR/MyGreatApp-macOS-Apple-Silicon.dmg"
+          cp "$INTEL_DMG" "$ARTIFACT_DIR/MyGreatApp-macOS-Intel.dmg"
+
+          ls -lh "$ARTIFACT_DIR"
+
+      - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: objo-macos-publish
-          path: ~/Documents/Publish/*.dmg
+          path: ~/Documents/Publish/artifacts/*.dmg
+          if-no-files-found: error
+          
 
   publish-linux:
     runs-on: ubuntu-latest
@@ -119,7 +149,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: objo-linux-publish
-          path: Publish/*.tar.gz
+          path: Publish/Linux-x64/Handoff/*.tar.gz
 
   publish-windows:
     runs-on: windows-latest
