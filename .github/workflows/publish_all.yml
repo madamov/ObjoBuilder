@@ -13,6 +13,7 @@ jobs:
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
       
     steps:
       - uses: actions/checkout@v4
@@ -139,6 +140,24 @@ jobs:
         shell: bash
         run: |
           echo "Skipping Apple certificate installation."
+
+      - name: Create Apple notarization profile
+        if: steps.apple-signing.outputs.available == 'true'
+        shell: bash
+        env:
+          NOTARY_PROFILE: objo-notarization
+        run: |
+          set -euo pipefail
+
+          echo "Creating notarization profile: $NOTARY_PROFILE"
+
+          xcrun notarytool store-credentials "$NOTARY_PROFILE" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --keychain "$APPLE_KEYCHAIN_PATH"
+
+          echo "APPLE_NOTARY_PROFILE=$NOTARY_PROFILE" >> "$GITHUB_ENV"
 
       - name: Restore cached Objo Studio
         uses: actions/cache/restore@v4
