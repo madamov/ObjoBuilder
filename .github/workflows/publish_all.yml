@@ -94,6 +94,7 @@ jobs:
           
 
   publish-linux:
+    needs: publish-macos
     runs-on: ubuntu-latest
 
     steps:
@@ -152,6 +153,7 @@ jobs:
           path: Publish/Linux-x64/Handoff/*.tar.gz
 
   publish-windows:
+    needs: publish-linux
     runs-on: windows-latest
 
     steps:
