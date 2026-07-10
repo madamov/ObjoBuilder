@@ -140,17 +140,19 @@ jobs:
           }
           trap cleanup EXIT
 
-          mkdir -p Publish
+          mkdir -p ~/Publish
 
           "$OBJO_BIN" publish "MyGreatApp.objosln" \
             --rid linux-x64 \
-            --output Publish
+            --output ~/Publish
 
+          ls -al ~/Publish
+          
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: objo-linux-publish
-          path: Publish/Linux-x64/Handoff/*.tar.gz
+          path: ~/Publish/Linux-x64/Handoff/*.tar.gz
 
   publish-windows:
     needs: publish-linux
@@ -194,11 +196,11 @@ jobs:
         shell: pwsh
         run: |
           try {
-            New-Item -ItemType Directory -Force -Path Publish | Out-Null
+            New-Item -ItemType Directory -Force -Path C:\Publish | Out-Null
 
             & "$env:OBJO_BIN" publish "MyGreatApp.objosln" `
               --rid win-x64 `
-              --output Publish
+              --output C:\Publish
 
             if ($LASTEXITCODE -ne 0) {
               exit $LASTEXITCODE
@@ -212,5 +214,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: objo-windows-publish
-          path: Publish/*.msix
+          path: C:\Publish\Windows-64\*.msix
           
