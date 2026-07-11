@@ -14,58 +14,43 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
-      
+      APPLE_NOTARY_PROFILE: objo-notarization
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Check Apple signing secrets
-
         id: apple-signing
-
         shell: bash
-
         run: |
-
           set -euo pipefail
 
           missing=()
 
           [[ -n "$APPLE_CERTIFICATE" ]] || missing+=("APPLE_CERTIFICATE")
-
           [[ -n "$APPLE_CERTIFICATE_NAME" ]] || missing+=("APPLE_CERTIFICATE_NAME")
-
           [[ -n "$APPLE_CERTIFICATE_PASSWORD" ]] || missing+=("APPLE_CERTIFICATE_PASSWORD")
-
           [[ -n "$APPLE_TEAM_ID" ]] || missing+=("APPLE_TEAM_ID")
-
           [[ -n "$APPLE_APP_SPECIFIC_PASSWORD" ]] || missing+=("APPLE_APP_SPECIFIC_PASSWORD")
 
           if (( ${#missing[@]} > 0 )); then
 
             echo "Apple signing configuration is incomplete."
-
             echo "Certificate installation will be skipped."
-
             echo "Missing secrets: ${missing[*]}"
-
             echo "available=false" >> "$GITHUB_OUTPUT"
 
           else
 
             echo "All Apple signing secrets are available."
-
             echo "available=true" >> "$GITHUB_OUTPUT"
 
           fi
 
       - name: Install Apple signing certificate
-
         if: steps.apple-signing.outputs.available == 'true'
-
         shell: bash
-
         run: |
-
           set -euo pipefail
 
           CERTIFICATE_PATH="$RUNNER_TEMP/apple-signing-certificate.p12"
@@ -74,17 +59,11 @@ jobs:
 
           echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
 
-          security create-keychain \
-            -p "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          security set-keychain-settings \
-            -lut 21600 \
-            "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
 
-          security unlock-keychain \
-            -p "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
           security import "$CERTIFICATE_PATH" \
             -k "$KEYCHAIN_PATH" \
@@ -98,23 +77,16 @@ jobs:
             -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
 
-          security list-keychains \
-            -d user \
-            -s "$KEYCHAIN_PATH" login.keychain-db
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
-          security default-keychain \
-            -d user \
-            -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
 
           rm -f "$CERTIFICATE_PATH"
           echo "APPLE_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
           echo "APPLE_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
           echo "Apple signing certificate installed:"
 
-          security find-identity \
-            -v \
-            -p codesigning \
-            "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
       - name: Verify expected certificate
         if: steps.apple-signing.outputs.available == 'true'
@@ -144,20 +116,42 @@ jobs:
       - name: Create Apple notarization profile
         if: steps.apple-signing.outputs.available == 'true'
         shell: bash
-        env:
-          NOTARY_PROFILE: objo-notarization
         run: |
           set -euo pipefail
 
           echo "Creating notarization profile: $NOTARY_PROFILE"
 
-          xcrun notarytool store-credentials "$NOTARY_PROFILE" \
+          xcrun notarytool store-credentials "$APPLE_NOTARY_PROFILE" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
             --keychain "$APPLE_KEYCHAIN_PATH"
 
-          echo "APPLE_NOTARY_PROFILE=$NOTARY_PROFILE" >> "$GITHUB_ENV"
+      - name: Configure macOS signing in project.json
+        if: steps.apple-signing.outputs.available == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROJECT_FILE="Projects/MyGreatApp/project.json"
+          TMP_FILE="$(mktemp)"
+
+          jq \
+            --arg identity "$APPLE_CERTIFICATE_NAME" \
+            --arg team "$APPLE_TEAM_ID" \
+            --arg profile "$APPLE_NOTARY_PROFILE" \
+            '
+            .Metadata.Signing.MacOS.SigningIdentity = $identity |
+            .Metadata.Signing.MacOS.TeamId = $team |
+            .Metadata.Signing.MacOS.NotarizationProfile = $profile
+            ' \
+            "$PROJECT_FILE" > "$TMP_FILE"
+
+          mv "$TMP_FILE" "$PROJECT_FILE"
+
+          echo "Updated signing section:"
+          jq '.Metadata.Signing.MacOS' "$PROJECT_FILE"
+          cat $PROJECT_FILE
 
       - name: Restore cached Objo Studio
         uses: actions/cache/restore@v4
