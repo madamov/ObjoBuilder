@@ -325,6 +325,43 @@ jobs:
 
           "OBJO_BIN=$($objo.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Configure Windows signing in project.json
+        shell: bash
+        env:
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+          AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNTNAME }}
+          AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERTIFICATEPROFILENAME }}
+          AZURE_CORRELATION_ID: github-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+          AZURE_TIMESTAMP_URL: ${{ secrets.AZURE_TIMESTAMPURL }}
+          AZURE_PACKAGE_PUBLISHER: ${{ secrets.AZURE_PACKAGEPUBLISHER }}
+        run: |
+          set -euo pipefail
+
+          PROJECT_FILE="Projects/MyGreatApp/project.json"
+          TMP_FILE="$(mktemp)"
+
+          jq \
+            --arg endpoint "$AZURE_ENDPOINT" \
+            --arg account "$AZURE_ACCOUNT_NAME" \
+            --arg profile "$AZURE_CERTIFICATE_PROFILE_NAME" \
+            --arg correlation "$AZURE_CORRELATION_ID" \
+            --arg timestamp "$AZURE_TIMESTAMP_URL" \
+            --arg publisher "$AZURE_PACKAGE_PUBLISHER" \
+            '
+            .Metadata.Signing.Windows.AzureEndpoint = $endpoint |
+            .Metadata.Signing.Windows.AzureAccountName = $account |
+            .Metadata.Signing.Windows.AzureCertificateProfileName = $profile |
+            .Metadata.Signing.Windows.AzureCorrelationId = $correlation |
+            .Metadata.Signing.Windows.TimestampUrl = $timestamp |
+            .Metadata.Signing.Windows.PackagePublisher = $publisher
+            ' \
+            "$PROJECT_FILE" > "$TMP_FILE"
+
+          mv "$TMP_FILE" "$PROJECT_FILE"
+
+          echo "Updated Windows signing section:"
+          jq '.Metadata.Signing.Windows' "$PROJECT_FILE"
+
       - name: Activate license and publish Windows app
         shell: pwsh
         env:
@@ -369,7 +406,7 @@ jobs:
           }
 
           exit $publishExitCode
-          
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
