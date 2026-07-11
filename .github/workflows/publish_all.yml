@@ -325,6 +325,10 @@ jobs:
 
           "OBJO_BIN=$($objo.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Install Trusted Signing Module
+        run: Install-Module -Name TrustedSigning -Force -Scope CurrentUser
+        shell: pwsh
+
       - name: Configure Windows signing in project.json
         shell: bash
         env:
