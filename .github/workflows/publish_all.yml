@@ -325,10 +325,25 @@ jobs:
 
           "OBJO_BIN=$($objo.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Install Trusted Signing Module
-        run: Install-Module -Name TrustedSigning -Force -Scope CurrentUser
+      - name: Install Azure Artifact Signing Client Tools
         shell: pwsh
-
+        run: |
+          winget install `
+            --exact `
+            --id Microsoft.Azure.ArtifactSigningClientTools `
+            --accept-package-agreements `
+            --accept-source-agreements `
+            --silent
+      
+          $dlib = "C:\Program Files (x86)\Microsoft\ArtifactSigningClientTools\bin\Azure.CodeSigning.Dlib.dll"
+      
+          if (-not (Test-Path $dlib)) {
+            throw "Azure.CodeSigning.Dlib.dll was not installed at the expected location: $dlib"
+          }
+      
+          Write-Host "Artifact Signing DLIB installed:"
+          Write-Host $dlib
+          
       - name: Configure Windows signing in project.json
         shell: bash
         env:
