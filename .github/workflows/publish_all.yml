@@ -119,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Creating notarization profile: $NOTARY_PROFILE"
+          echo "Creating notarization profile: $APPLE_NOTARY_PROFILE"
 
           xcrun notarytool store-credentials "$APPLE_NOTARY_PROFILE" \
             --apple-id "$APPLE_ID" \
