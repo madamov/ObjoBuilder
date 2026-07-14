@@ -40,75 +40,6 @@ jobs:
           Write-Host "Found Objo executable:"
           Write-Host $objo.FullName
 
-      - name: Install Azure Artifact Signing Client Tools
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-
-          winget install `
-            --exact `
-            --id Microsoft.Azure.ArtifactSigningClientTools `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --silent `
-            --disable-interactivity
-
-          # Search the locations used by current and older installers.
-          $searchRoots = @(
-            "C:\ProgramData\Microsoft",
-            "$env:LOCALAPPDATA\Microsoft",
-            "$env:ProgramFiles\Microsoft",
-            "${env:ProgramFiles(x86)}\Microsoft"
-          ) | Where-Object {
-            $_ -and (Test-Path $_)
-          }
-
-          Write-Host "Searching for Azure.CodeSigning.Dlib.dll..."
-
-          $dlib = foreach ($root in $searchRoots) {
-            Get-ChildItem `
-              -Path $root `
-              -Filter "Azure.CodeSigning.Dlib.dll" `
-              -File `
-              -Recurse `
-              -ErrorAction SilentlyContinue
-          }
-
-          # Prefer the x64 version when multiple copies exist.
-          $dlib = $dlib |
-            Sort-Object @{
-              Expression = {
-                if ($_.FullName -match '[\\/]x64[\\/]') { 0 } else { 1 }
-              }
-            }, FullName |
-            Select-Object -First 1
-
-          if (-not $dlib) {
-            Write-Host "Artifact Signing related directories:"
-            
-            foreach ($root in $searchRoots) {
-              Get-ChildItem `
-                -Path $root `
-                -Directory `
-                -Recurse `
-                -ErrorAction SilentlyContinue |
-                Where-Object {
-                  $_.FullName -match 'ArtifactSigning|TrustedSigning'
-                } |
-                Select-Object -ExpandProperty FullName
-            }
-
-            throw "Azure.CodeSigning.Dlib.dll was not found after installation."
-          }
-
-          Write-Host "Found Artifact Signing DLIB:"
-          Write-Host $dlib.FullName
-
-          "AZURE_CODESIGNING_DLIB=$($dlib.FullName)" |
-            Out-File `
-              -FilePath $env:GITHUB_ENV `
-              -Encoding utf8 `
-              -Append
 
       - name: Turn off Windows signing in project.json
         shell: bash
@@ -196,6 +127,12 @@ jobs:
           }
 
           exit $publishExitCode
+
+      - name: Install Trusted Signing Module
+        if: ${{ contains(env.ourAction, 'BUILD') }}
+        run: Install-Module -Name TrustedSigning -Force -Scope CurrentUser
+        shell: pwsh
+
 
       - name: Sign files with Trusted Signing
         uses: azure/trusted-signing-action@v0
