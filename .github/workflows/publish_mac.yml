@@ -208,8 +208,6 @@ jobs:
 
           hdiutil detach "$MOUNT_POINT" -quiet
 
-  cache-linux:
-
       - name: Find Objo executable
         shell: bash
         run: |
