@@ -67,7 +67,7 @@ jobs:
             --arg profile "" \
             --arg correlation "" \
             --arg timestamp "" \
-            --arg publisher "" \
+            --arg publisher "$AZURE_PACKAGE_PUBLISHER" \
             '
             .Metadata.Signing.Windows.AzureEndpoint = $endpoint |
             .Metadata.Signing.Windows.AzureAccountName = $account |
