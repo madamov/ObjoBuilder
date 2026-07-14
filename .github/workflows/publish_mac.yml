@@ -161,6 +161,48 @@ jobs:
           restore-keys: |
             objo-studio-macos-
 
+      - name: Download and install Objo Studio
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
+
+          DMG="Objo-Studio-${VERSION}-macOS-arm64.dmg"
+          URL="https://downloads.objo.dev/releases/${VERSION}/${DMG}"
+
+          curl -fL "$URL" -o "$DMG"
+
+          MOUNT_POINT=$(
+            hdiutil attach "$DMG" -nobrowse |
+            awk '/\/Volumes\// {print substr($0, index($0, "/Volumes/")); exit}'
+          )
+
+          if [[ -z "$MOUNT_POINT" ]]; then
+            echo "Could not determine DMG mount point" >&2
+            exit 1
+          fi
+
+          APP_PATH=$(find "$MOUNT_POINT" -maxdepth 2 -name "Objo Studio.app" -type d | head -n1)
+
+          if [[ -z "$APP_PATH" ]]; then
+            echo "Could not find Objo Studio.app inside DMG" >&2
+            hdiutil detach "$MOUNT_POINT" -quiet
+            exit 1
+          fi
+
+          rm -rf "/Applications/Objo Studio.app"
+          cp -R "$APP_PATH" /Applications/
+
+          hdiutil detach "$MOUNT_POINT" -quiet
+
+
       - name: Find Objo executable
         shell: bash
         run: |
