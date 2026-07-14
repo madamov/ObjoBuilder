@@ -10,26 +10,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore cached Objo Studio
-        uses: actions/cache/restore@v4
-        with:
-          path: /opt/objo-studio
-          key: objo-studio-linux-
-          restore-keys: |
-            objo-studio-linux-
-
-      - name: Find Objo executable
+      - name: Get latest version
+        id: version
         shell: bash
         run: |
-          OBJO_BIN=$(find /opt/objo-studio -type f -name objo | head -n1)
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
 
-          if [[ -z "$OBJO_BIN" ]]; then
-            echo "Could not find objo executable"
-            exit 1
-          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-          chmod +x "$OBJO_BIN"
-          echo "OBJO_BIN=$OBJO_BIN" >> "$GITHUB_ENV"
+      - name: Restore Objo Studio cache
+        id: cache-objo
+        uses: actions/cache@v4
+        with:
+          path: /opt/objo-studio
+          key: objo-studio-linux-${{ steps.version.outputs.version }}
+
+      - name: Download and extract Objo Studio
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="Objo-Studio-${VERSION}-linux-x64.tar.gz"
+          URL="https://downloads.objo.dev/releases/${VERSION}/${ARCHIVE}"
+
+          mkdir -p /opt/objo-studio
+
+          curl -fL "$URL" -o "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C /opt/objo-studio
 
       - name: Activate Objo license
         env:
