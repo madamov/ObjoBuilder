@@ -129,7 +129,6 @@ jobs:
           exit $publishExitCode
 
       - name: Install Trusted Signing Module
-        if: ${{ contains(env.ourAction, 'BUILD') }}
         run: Install-Module -Name TrustedSigning -Force -Scope CurrentUser
         shell: pwsh
 
