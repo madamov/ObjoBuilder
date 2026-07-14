@@ -1,0 +1,223 @@
+# this worklow do not use Objo Studio builtin signing of Windows apps
+# which uses signtool.exe locally and we have to do additional settings to make it work
+# we will publish Objo Solution and let it create msix archive, but sign it
+# using Azure signing action
+
+name: Publish and Sign Objo Windows Application
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached Objo Studio
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\Objo
+          key: objo-studio-windows-
+          restore-keys: |
+            objo-studio-windows-
+
+      - name: Find Objo executable
+        shell: pwsh
+        run: |
+          $objo = Get-ChildItem -Path "C:\Objo" -Recurse -Filter "objo.exe" -File |
+            Select-Object -First 1
+
+          if (-not $objo) {
+            Write-Error "Could not find objo.exe"
+            exit 1
+          }
+
+          "OBJO_BIN=$($objo.FullName)" |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "Found Objo executable:"
+          Write-Host $objo.FullName
+
+      - name: Install Azure Artifact Signing Client Tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          winget install `
+            --exact `
+            --id Microsoft.Azure.ArtifactSigningClientTools `
+            --accept-package-agreements `
+            --accept-source-agreements `
+            --silent `
+            --disable-interactivity
+
+          # Search the locations used by current and older installers.
+          $searchRoots = @(
+            "C:\ProgramData\Microsoft",
+            "$env:LOCALAPPDATA\Microsoft",
+            "$env:ProgramFiles\Microsoft",
+            "${env:ProgramFiles(x86)}\Microsoft"
+          ) | Where-Object {
+            $_ -and (Test-Path $_)
+          }
+
+          Write-Host "Searching for Azure.CodeSigning.Dlib.dll..."
+
+          $dlib = foreach ($root in $searchRoots) {
+            Get-ChildItem `
+              -Path $root `
+              -Filter "Azure.CodeSigning.Dlib.dll" `
+              -File `
+              -Recurse `
+              -ErrorAction SilentlyContinue
+          }
+
+          # Prefer the x64 version when multiple copies exist.
+          $dlib = $dlib |
+            Sort-Object @{
+              Expression = {
+                if ($_.FullName -match '[\\/]x64[\\/]') { 0 } else { 1 }
+              }
+            }, FullName |
+            Select-Object -First 1
+
+          if (-not $dlib) {
+            Write-Host "Artifact Signing related directories:"
+            
+            foreach ($root in $searchRoots) {
+              Get-ChildItem `
+                -Path $root `
+                -Directory `
+                -Recurse `
+                -ErrorAction SilentlyContinue |
+                Where-Object {
+                  $_.FullName -match 'ArtifactSigning|TrustedSigning'
+                } |
+                Select-Object -ExpandProperty FullName
+            }
+
+            throw "Azure.CodeSigning.Dlib.dll was not found after installation."
+          }
+
+          Write-Host "Found Artifact Signing DLIB:"
+          Write-Host $dlib.FullName
+
+          "AZURE_CODESIGNING_DLIB=$($dlib.FullName)" |
+            Out-File `
+              -FilePath $env:GITHUB_ENV `
+              -Encoding utf8 `
+              -Append
+
+      - name: Turn off Windows signing in project.json
+        shell: bash
+        env:
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+          AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNTNAME }}
+          AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERTIFICATEPROFILENAME }}
+          AZURE_CORRELATION_ID: github-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+          AZURE_TIMESTAMP_URL: ${{ secrets.AZURE_TIMESTAMPURL }}
+          AZURE_PACKAGE_PUBLISHER: ${{ secrets.AZURE_PACKAGEPUBLISHER }}
+        run: |
+          set -euo pipefail
+
+          PROJECT_FILE="Projects/MyGreatApp/project.json"
+          TMP_FILE="$(mktemp)"
+
+          if [[ ! -f "$PROJECT_FILE" ]]; then
+            echo "Could not find $PROJECT_FILE" >&2
+            exit 1
+          fi
+
+          jq \
+            --arg endpoint "" \
+            --arg account "" \
+            --arg profile "" \
+            --arg correlation "" \
+            --arg timestamp "" \
+            --arg publisher "" \
+            '
+            .Metadata.Signing.Windows.AzureEndpoint = $endpoint |
+            .Metadata.Signing.Windows.AzureAccountName = $account |
+            .Metadata.Signing.Windows.AzureCertificateProfileName = $profile |
+            .Metadata.Signing.Windows.AzureCorrelationId = $correlation |
+            .Metadata.Signing.Windows.TimestampUrl = $timestamp |
+            .Metadata.Signing.Windows.PackagePublisher = $publisher
+            ' \
+            "$PROJECT_FILE" > "$TMP_FILE"
+
+          mv "$TMP_FILE" "$PROJECT_FILE"
+
+          echo "Updated Windows signing section:"
+          jq '.Metadata.Signing.Windows' "$PROJECT_FILE"
+
+      - name: Activate license and publish Windows app
+        shell: pwsh
+        env:
+          OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
+        run: |
+          $licenseFile = Join-Path $env:RUNNER_TEMP "objo-license-key.txt"
+          $publishExitCode = 1
+
+          try {
+            Set-Content `
+              -Path $licenseFile `
+              -Value $env:OBJO_LICENSE `
+              -NoNewline
+
+            & "$env:OBJO_BIN" license activate --key-file $licenseFile
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "License activation failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+            }
+
+            New-Item -ItemType Directory -Force -Path "C:\Publish" |
+              Out-Null
+
+            & "$env:OBJO_BIN" publish "MyGreatApp.objosln" `
+              --rid win-x64 `
+              --output "C:\Publish"
+
+            $publishExitCode = $LASTEXITCODE
+            Write-Host "objo publish exit code: $publishExitCode"
+          }
+          finally {
+            & "$env:OBJO_BIN" license deactivate
+            $deactivateExitCode = $LASTEXITCODE
+
+            Write-Host "objo license deactivate exit code: $deactivateExitCode"
+
+            Remove-Item `
+              $licenseFile `
+              -Force `
+              -ErrorAction SilentlyContinue
+          }
+
+          exit $publishExitCode
+
+      - name: Sign files with Trusted Signing
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANTID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENTID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENTSECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_ACCOUNTNAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERTIFICATEPROFILENAME }}
+          files-folder: C:\Publish\Windows-x64\
+          files-folder-filter: msix
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: ${{ secrets.AZURE_TIMESTAMPURL }}
+          timestamp-digest: SHA256
+
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: objo-windows-publish
+          path: C:\Publish\Windows-x64\*.msix
+          if-no-files-found: error
+          
