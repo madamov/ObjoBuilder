@@ -154,6 +154,7 @@ jobs:
           cat $PROJECT_FILE
 
       - name: Restore cached Objo Studio
+        id: cache-objo
         uses: actions/cache/restore@v4
         with:
           path: /Applications/Objo Studio.app
