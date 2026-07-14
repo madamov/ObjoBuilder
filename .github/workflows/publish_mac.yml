@@ -153,21 +153,10 @@ jobs:
           jq '.Metadata.Signing.MacOS' "$PROJECT_FILE"
           cat $PROJECT_FILE
 
-      - name: Restore cached Objo Studio
-        id: cache-objo
-        uses: actions/cache/restore@v4
-        with:
-          path: /Applications/Objo Studio.app
-          key: objo-studio-macos-
-          restore-keys: |
-            objo-studio-macos-
-
-      - name: Download and install Objo Studio
-        if: steps.cache-objo.outputs.cache-hit != 'true'
+      - name: Get latest version
+        id: version
         shell: bash
         run: |
-          set -euo pipefail
-
           VERSION=$(
             curl -fsSL https://objo.dev/download |
             grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
@@ -175,6 +164,22 @@ jobs:
             sed -E 's/Latest version:[[:space:]]*//'
           )
 
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Objo Studio cache
+        id: cache-objo
+        uses: actions/cache@v4
+        with:
+          path: /Applications/Objo Studio.app
+          key: objo-studio-macos-${{ steps.version.outputs.version }}
+
+      - name: Download and install Objo Studio
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
           DMG="Objo-Studio-${VERSION}-macOS-arm64.dmg"
           URL="https://downloads.objo.dev/releases/${VERSION}/${DMG}"
 
@@ -203,6 +208,7 @@ jobs:
 
           hdiutil detach "$MOUNT_POINT" -quiet
 
+  cache-linux:
 
       - name: Find Objo executable
         shell: bash
