@@ -298,7 +298,6 @@ jobs:
           path: ~/Publish/Linux-x64/Handoff/*.tar.gz
 
   publish-windows:
-    needs: publish-linux
     runs-on: windows-latest
 
     steps:
@@ -323,28 +322,14 @@ jobs:
             exit 1
           }
 
-          "OBJO_BIN=$($objo.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "OBJO_BIN=$($objo.FullName)" |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Install Azure Artifact Signing Client Tools
-        shell: pwsh
-        run: |
-          winget install `
-            --exact `
-            --id Microsoft.Azure.ArtifactSigningClientTools `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --silent
-      
-          $dlib = "C:\Program Files (x86)\Microsoft\ArtifactSigningClientTools\bin\Azure.CodeSigning.Dlib.dll"
-      
-          if (-not (Test-Path $dlib)) {
-            throw "Azure.CodeSigning.Dlib.dll was not installed at the expected location: $dlib"
-          }
-      
-          Write-Host "Artifact Signing DLIB installed:"
-          Write-Host $dlib
-          
-      - name: Configure Windows signing in project.json
+          Write-Host "Found Objo executable:"
+          Write-Host $objo.FullName
+
+
+      - name: Turn off Windows signing in project.json
         shell: bash
         env:
           AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
@@ -359,12 +344,17 @@ jobs:
           PROJECT_FILE="Projects/MyGreatApp/project.json"
           TMP_FILE="$(mktemp)"
 
+          if [[ ! -f "$PROJECT_FILE" ]]; then
+            echo "Could not find $PROJECT_FILE" >&2
+            exit 1
+          fi
+
           jq \
-            --arg endpoint "$AZURE_ENDPOINT" \
-            --arg account "$AZURE_ACCOUNT_NAME" \
-            --arg profile "$AZURE_CERTIFICATE_PROFILE_NAME" \
-            --arg correlation "$AZURE_CORRELATION_ID" \
-            --arg timestamp "$AZURE_TIMESTAMP_URL" \
+            --arg endpoint "" \
+            --arg account "" \
+            --arg profile "" \
+            --arg correlation "" \
+            --arg timestamp "" \
             --arg publisher "$AZURE_PACKAGE_PUBLISHER" \
             '
             .Metadata.Signing.Windows.AzureEndpoint = $endpoint |
@@ -426,9 +416,31 @@ jobs:
 
           exit $publishExitCode
 
+      - name: Install Trusted Signing Module
+        run: Install-Module -Name TrustedSigning -Force -Scope CurrentUser
+        shell: pwsh
+
+
+      - name: Sign files with Trusted Signing
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANTID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENTID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENTSECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_ACCOUNTNAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERTIFICATEPROFILENAME }}
+          files-folder: C:\Publish\Windows-x64\
+          files-folder-filter: msix
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: ${{ secrets.AZURE_TIMESTAMPURL }}
+          timestamp-digest: SHA256
+
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: objo-windows-publish
           path: C:\Publish\Windows-x64\*.msix
-          
+          if-no-files-found: error
