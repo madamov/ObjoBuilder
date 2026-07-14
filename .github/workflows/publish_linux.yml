@@ -45,6 +45,19 @@ jobs:
           curl -fL "$URL" -o "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C /opt/objo-studio
 
+      - name: Find Objo executable
+        shell: bash
+        run: |
+          OBJO_BIN=$(find /opt/objo-studio -type f -name objo | head -n1)
+
+          if [[ -z "$OBJO_BIN" ]]; then
+            echo "Could not find objo executable"
+            exit 1
+          fi
+
+          chmod +x "$OBJO_BIN"
+          echo "OBJO_BIN=$OBJO_BIN" >> "$GITHUB_ENV"
+
       - name: Activate Objo license
         env:
           OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
