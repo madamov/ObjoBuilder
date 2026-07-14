@@ -299,6 +299,7 @@ jobs:
 
   publish-windows:
     runs-on: windows-latest
+    needs: publish-linux
 
     steps:
       - uses: actions/checkout@v4
