@@ -10,7 +10,6 @@ jobs:
     with:
       solution-file: MyGreatApp.objosln
       project-file: Projects/MyGreatApp/project.json
-      application-name: MyGreatApp
       artifact-name: mygreatapp-linux-publish
       targets: linux-x64
 
