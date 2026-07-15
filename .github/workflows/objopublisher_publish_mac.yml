@@ -13,7 +13,7 @@ jobs:
       application-name: MyGreatApp
       artifact-name: mygreatapp-macos-publish
       apple-notary-profile: mygreatapp-notarization
-      targets: osx-arm64
+      targets: osx-x64
 
       
       # Optional. Leave this out to detect the latest version.
