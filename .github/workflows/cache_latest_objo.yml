@@ -1,3 +1,6 @@
+# This is OK to use for objo check calls
+# For build and Publish Objo Studio installation is required
+
 name: Cache Latest Objo Binary
 
 on:

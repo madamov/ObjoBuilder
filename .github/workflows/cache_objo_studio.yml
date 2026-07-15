@@ -1,3 +1,6 @@
+# Caches the latest version of Object Studio from https://objo.dev/download
+# for each platform
+
 name: Cache Objo Studio
 
 on:
