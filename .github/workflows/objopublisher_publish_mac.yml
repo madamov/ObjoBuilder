@@ -5,7 +5,7 @@ on:
 
 jobs:
   publish-macos:
-    uses: madamov/ObjoPublisher/.github/workflows/publish-objo-macos.yml@main
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@main
 
     with:
       solution-file: MyGreatApp.objosln
