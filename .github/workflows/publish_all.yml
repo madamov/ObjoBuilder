@@ -1,4 +1,4 @@
-name: Publish Objo Application
+name: Publish for all
 
 # Publish on each platform one at the time
 # Signs and notarise on macOS

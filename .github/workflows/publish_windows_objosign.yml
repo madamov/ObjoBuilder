@@ -1,6 +1,6 @@
 # this workflow modifies project.json and leaves to Objo to handle signing
 
-name: Publish Objo Windows Application (sign local)
+name: Publish for Windows (sign by Objo)
 
 on:
   workflow_dispatch:

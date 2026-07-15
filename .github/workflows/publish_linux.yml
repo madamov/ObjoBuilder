@@ -1,4 +1,4 @@
-name: Publish Ubuntu Objo Application
+name: Publish for Linux
 
 # publish application on Ubuntu, resutling archive uploaded to artifacts
 

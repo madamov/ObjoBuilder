@@ -1,4 +1,4 @@
-name: ObjoPublisher publish macOS Objo Application
+name: ObjoPublisher for macOS
 
 on:
   workflow_dispatch:

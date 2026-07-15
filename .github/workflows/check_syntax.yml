@@ -1,4 +1,4 @@
-name: Check Objo Solution Syntax (restores Objo Studio)
+name: Check Syntax (restores Objo Studio)
 
 on:
   workflow_dispatch:

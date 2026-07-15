@@ -1,4 +1,4 @@
-name: Publish macOS Objo Application
+name: Publish for macOS
 
 # Publishes application for macOS, both Apple Silicon and Intel version
 # If credentials are present in secrets, signs them
