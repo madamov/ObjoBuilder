@@ -1,0 +1,23 @@
+name: ObjoPublisher for Linux
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-macos:
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@main
+
+    with:
+      solution-file: MyGreatApp.objosln
+      project-file: Projects/MyGreatApp/project.json
+      application-name: MyGreatApp
+      artifact-name: mygreatapp-linux-publish
+      targets: linux-x64
+
+      
+      # Optional. Leave this out to detect the latest version.
+      # objo-version: 26.7.1
+
+    secrets:
+      objo-license: ${{ secrets.OBJO_LICENSE }}
+ 
