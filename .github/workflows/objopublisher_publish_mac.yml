@@ -13,7 +13,7 @@ jobs:
       application-name: MyGreatApp
       artifact-name: mygreatapp-macos-publish
       apple-notary-profile: mygreatapp-notarization
-      output-directory: ~/Documents/Publish
+      output-directory: Publish
 
       
       # Optional. Leave this out to detect the latest version.
