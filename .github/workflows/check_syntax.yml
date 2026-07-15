@@ -1,4 +1,4 @@
-name: Check Objo Solution Syntax
+name: Check Objo Solution Syntax (restores Objo Studio)
 
 on:
   workflow_dispatch:
@@ -12,34 +12,53 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore cached Objo binary
-        id: cache-objo
-        uses: actions/cache/restore@v4
-        with:
-          path: /opt/objo
-          key: objo-Linux-
-          restore-keys: |
-            objo-Linux-
-
-      - name: Verify Objo binary exists
+      - name: Get latest version
+        id: version
         shell: bash
         run: |
-          if [ ! -f /opt/objo/linux/objo ] && [ ! -f /opt/objo/objo ]; then
-            echo "Objo binary not found in cache"
-            echo "Run the Cache Latest Objo Binary workflow first."
+          VERSION=$(
+            curl -fsSL https://objo.dev/download |
+            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
+            head -n1 |
+            sed -E 's/Latest version:[[:space:]]*//'
+          )
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Objo Studio cache
+        id: cache-objo
+        uses: actions/cache@v4
+        with:
+          path: /opt/objo-studio
+          key: objo-studio-linux-${{ steps.version.outputs.version }}
+
+      - name: Download and extract Objo Studio
+        if: steps.cache-objo.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="Objo-Studio-${VERSION}-linux-x64.tar.gz"
+          URL="https://downloads.objo.dev/releases/${VERSION}/${ARCHIVE}"
+
+          mkdir -p /opt/objo-studio
+
+          curl -fL "$URL" -o "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C /opt/objo-studio
+
+      - name: Find Objo executable
+        shell: bash
+        run: |
+          OBJO_BIN=$(find /opt/objo-studio -type f -name objo | head -n1)
+
+          if [[ -z "$OBJO_BIN" ]]; then
+            echo "Could not find objo executable"
             exit 1
           fi
 
-      - name: Add Objo to PATH
-        shell: bash
-        run: |
-          if [ -f /opt/objo/linux/objo ]; then
-            chmod +x /opt/objo/linux/objo
-            echo "/opt/objo/linux" >> "$GITHUB_PATH"
-          else
-            chmod +x /opt/objo/objo
-            echo "/opt/objo" >> "$GITHUB_PATH"
-          fi
+          chmod +x "$OBJO_BIN"
+          echo "OBJO_BIN=$OBJO_BIN" >> "$GITHUB_ENV"
 
       - name: Activate Objo license
         shell: bash
@@ -50,12 +69,13 @@ jobs:
 
           printf '%s' "$OBJO_LICENSE" > "$LICENSE_FILE"
 
-          objo license activate --key-file "$LICENSE_FILE"
+          "$OBJO_BIN" license activate --key-file "$LICENSE_FILE"
 
           rm -f "$LICENSE_FILE"
 
       - name: Check Objo solution syntax
         shell: bash
         run: |
-          objo check MyGreatApp.objosln
-          objo license deactivate
+          "$OBJO_BIN" check MyGreatApp.objosln
+          "$OBJO_BIN" license deactivate
+          

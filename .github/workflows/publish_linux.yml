@@ -1,5 +1,7 @@
 name: Publish Ubuntu Objo Application
 
+# publish application on Ubuntu, resutling archive uploaded to artifacts
+
 on:
   workflow_dispatch:
 

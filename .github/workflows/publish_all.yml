@@ -1,5 +1,10 @@
 name: Publish Objo Application
 
+# Publish on each platform one at the time
+# Signs and notarise on macOS
+# Signs using Artifact Trusted Signing (Azure Trusted Signing) GitHub action on Windows
+# Puts resulting archives in artifacts of the GitHub action run
+
 on:
   workflow_dispatch:
 

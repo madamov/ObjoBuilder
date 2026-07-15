@@ -1,0 +1,61 @@
+name: Check Objo Solution Syntax (needs bojo binary cached)
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  check-objo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore cached Objo binary
+        id: cache-objo
+        uses: actions/cache/restore@v4
+        with:
+          path: /opt/objo
+          key: objo-Linux-
+          restore-keys: |
+            objo-Linux-
+
+      - name: Verify Objo binary exists
+        shell: bash
+        run: |
+          if [ ! -f /opt/objo/linux/objo ] && [ ! -f /opt/objo/objo ]; then
+            echo "Objo binary not found in cache"
+            echo "Run the Cache Latest Objo Binary workflow first."
+            exit 1
+          fi
+
+      - name: Add Objo to PATH
+        shell: bash
+        run: |
+          if [ -f /opt/objo/linux/objo ]; then
+            chmod +x /opt/objo/linux/objo
+            echo "/opt/objo/linux" >> "$GITHUB_PATH"
+          else
+            chmod +x /opt/objo/objo
+            echo "/opt/objo" >> "$GITHUB_PATH"
+          fi
+
+      - name: Activate Objo license
+        shell: bash
+        env:
+          OBJO_LICENSE: ${{ secrets.OBJO_LICENSE }}
+        run: |
+          LICENSE_FILE="$RUNNER_TEMP/objo-license-key.txt"
+
+          printf '%s' "$OBJO_LICENSE" > "$LICENSE_FILE"
+
+          objo license activate --key-file "$LICENSE_FILE"
+
+          rm -f "$LICENSE_FILE"
+
+      - name: Check Objo solution syntax
+        shell: bash
+        run: |
+          objo check MyGreatApp.objosln
+          objo license deactivate

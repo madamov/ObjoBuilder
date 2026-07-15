@@ -3,7 +3,7 @@
 # we will publish Objo Solution and let it create msix archive, but sign it
 # using Azure signing action
 
-name: Publish and Sign Objo Windows Application
+name: Publish Objo Windows Application (sign azure action)
 
 on:
   workflow_dispatch:

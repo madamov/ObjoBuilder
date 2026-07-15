@@ -1,5 +1,11 @@
 name: Publish macOS Objo Application
 
+# Publishes application for macOS, both Apple Silicon and Intel version
+# If credentials are present in secrets, signs them
+# If credentials are present in secrets, it notarizes DMG arhives
+# Modifies project.json and leaves to Objo to handle signing and notarization
+# Uploads resulting files to artifacts
+
 on:
   workflow_dispatch:
 
