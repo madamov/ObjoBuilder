@@ -14,10 +14,6 @@ jobs:
       artifact-name: mygreatapp-macos-publish
       apple-notary-profile: mygreatapp-notarization
 
-      apple-certificate-name: ${{ secrets.APPLE_CERTIFICATE_NAME }}
-      apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
-      apple-id: ${{ secrets.APPLE_ID }}
-
       # Optional. Leave this out to detect the latest version.
       # objo-version: 26.7.1
 
@@ -26,3 +22,7 @@ jobs:
       apple-certificate-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       apple-app-specific-password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       objo-license: ${{ secrets.OBJO_LICENSE }}
+      apple-certificate-name: ${{ secrets.APPLE_CERTIFICATE_NAME }}
+      apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+      apple-id: ${{ secrets.APPLE_ID }}
+      
