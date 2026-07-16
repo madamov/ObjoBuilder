@@ -20,6 +20,24 @@ The workflows prefixed with **ObjoPublisher** simply provide project-specific pa
 | **ObjoPublisher for Windows** | Publishes Windows applications and signs generated MSIX packages using the official Azure Trusted Signing GitHub Action. |
 | **ObjoPublisher for Windows (Objo signing)** | Publishes Windows applications and lets Objo Studio perform Azure Trusted Signing during publishing. |
 
+## Example workflow
+
+This repository also contains a sample workflow named **`check_syntax.yml`**. It demonstrates how to restore a cached Objo Studio installation, activate an Objo Studio license, and run the `objo check` command to verify the syntax of an Objo solution.
+
+The workflow is intended as a reference implementation for projects that need to perform automated syntax validation without publishing an application. You can use it as a starting point for creating your own build, test, or validation workflows.
+
+---
+
+## Caching the latest Objo Studio
+
+The **`cache_objo_studio.yml`** workflow is a utility workflow that downloads and caches the latest released version of Objo Studio for all supported GitHub Actions runner platforms:
+
+- macOS
+- Linux
+- Windows
+
+Running this workflow proactively refreshes the GitHub Actions caches, allowing subsequent build and publish workflows to restore Objo Studio from cache instead of downloading it during each run. This reduces workflow execution time and minimizes external downloads.
+
 ---
 
 # Repository secrets
