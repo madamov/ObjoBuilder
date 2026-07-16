@@ -15,7 +15,6 @@ jobs:
       apple-notary-profile: mygreatapp-notarization
       targets: osx-x64
 
-      
       # Optional. Leave this out to detect the latest version.
       # objo-version: 26.7.1
 
@@ -27,3 +26,30 @@ jobs:
       apple-certificate-name: ${{ secrets.APPLE_CERTIFICATE_NAME }}
       apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
       apple-id: ${{ secrets.APPLE_ID }}
+
+  download-macos-artifact:
+    name: Download published macOS artifacts
+    needs: publish-macos
+    runs-on: macos-latest
+
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mygreatapp-macos-publish
+          path: downloaded-artifacts/mygreatapp-macos-publish
+
+      - name: Show downloaded files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Downloaded artifact contents:"
+          find downloaded-artifacts \
+            -type f \
+            -print
+
+      - name: Show file details
+        shell: bash
+        run: |
+          ls -lhR downloaded-artifacts
