@@ -1,4 +1,4 @@
-name: ObjoPublisher for Windows
+name: ObjoPublisher for Windows (sign by Azure action)
 
 on:
   workflow_dispatch:
