@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# script was used to fetch Objo Studio for each platform, extract objo or objo.exe
+# create 7z archive and later upload it to SFTP server
+
 set -euo pipefail
 
 BASE_PAGE="https://objo.dev/download"
