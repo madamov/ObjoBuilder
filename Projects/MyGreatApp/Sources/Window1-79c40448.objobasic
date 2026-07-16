@@ -1,3 +1,7 @@
 Class Window1 Inherits Window
 
+  Sub Button1_MouseDown(x As Double, y As Double, button As MouseButton)
+fsfsdfsdfsdf sfsdf
+
+  End Sub
 End Class
