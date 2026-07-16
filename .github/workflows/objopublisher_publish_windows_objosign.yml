@@ -1,0 +1,37 @@
+name: ObjoPublisher for Windows (sign by objo)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-windows:
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@main
+
+    with:
+      solution-file: MyGreatApp.objosln
+      project-file: Projects/MyGreatApp/project.json
+      application-name: MyGreatApp
+      artifact-name: mygreatapp-windows-publish
+      output-directory: Publish
+      targets: win-x64
+
+      # Optional. Leave this out to detect the latest version.
+      # objo-version: 26.7.1
+
+      # Optional. Defaults to application-name plus github run id.
+      # azure-correlation-id: mygreatapp-${{ github.run_id }}
+
+    secrets:
+      objo-license: ${{ secrets.OBJO_LICENSE }}
+
+      azure-tenant-id: ${{ secrets.AZURE_TENANTID }}
+      azure-client-id: ${{ secrets.AZURE_CLIENTID }}
+      azure-client-secret: ${{ secrets.AZURE_CLIENTSECRET }}
+
+      azure-endpoint: ${{ secrets.AZURE_ENDPOINT }}
+      azure-account-name: ${{ secrets.AZURE_ACCOUNTNAME }}
+      azure-certificate-profile-name: ${{ secrets.AZURE_CERTIFICATEPROFILENAME }}
+      azure-package-publisher: ${{ secrets.AZURE_PACKAGEPUBLISHER }}
+
+      # Optional
+      azure-timestamp-url: ${{ secrets.AZURE_TIMESTAMPURL }}
