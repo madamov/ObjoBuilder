@@ -1,4 +1,4 @@
-name: Check Syntax (restores Objo Studio)
+name: Check Syntax (restores full Objo Studio)
 
 on:
   workflow_dispatch:
@@ -76,6 +76,12 @@ jobs:
       - name: Check Objo solution syntax
         shell: bash
         run: |
+          set -euo pipefail
+
+          cleanup() {
+            "$OBJO_BIN" license deactivate || true
+          }
+
+          trap cleanup EXIT
+
           "$OBJO_BIN" check MyGreatApp.objosln
-          "$OBJO_BIN" license deactivate
-          
