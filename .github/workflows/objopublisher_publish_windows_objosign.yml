@@ -24,10 +24,6 @@ jobs:
     secrets:
       objo-license: ${{ secrets.OBJO_LICENSE }}
 
-      azure-tenant-id: ${{ secrets.AZURE_TENANTID }}
-      azure-client-id: ${{ secrets.AZURE_CLIENTID }}
-      azure-client-secret: ${{ secrets.AZURE_CLIENTSECRET }}
-
       azure-endpoint: ${{ secrets.AZURE_ENDPOINT }}
       azure-account-name: ${{ secrets.AZURE_ACCOUNTNAME }}
       azure-certificate-profile-name: ${{ secrets.AZURE_CERTIFICATEPROFILENAME }}
