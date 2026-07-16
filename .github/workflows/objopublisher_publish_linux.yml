@@ -17,4 +17,25 @@ jobs:
 
     secrets:
       objo-license: ${{ secrets.OBJO_LICENSE }}
-      
+
+  download-linux-artifact:
+    name: Download published Linux artifact
+    needs: publish-linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mygreatapp-linux-publish
+          path: downloaded-artifacts/mygreatapp-linux-publish
+
+      - name: Show downloaded files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Downloaded artifact contents:"
+          find downloaded-artifacts \
+            -type f \
+            -print
