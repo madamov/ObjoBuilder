@@ -84,4 +84,33 @@ jobs:
 
           trap cleanup EXIT
 
-          "$OBJO_BIN" check MyGreatApp.objosln
+          mapfile -d '' SOLUTION_FILES < <(
+            find "$GITHUB_WORKSPACE" \
+              -type f \
+              -name '*.objosln' \
+              -print0
+          )
+
+          if (( ${#SOLUTION_FILES[@]} == 0 )); then
+            echo "No .objosln file was found in the repository." >&2
+            exit 1
+          fi
+
+          if (( ${#SOLUTION_FILES[@]} > 1 )); then
+            echo "Multiple .objosln files were found:" >&2
+
+            for solution_file in "${SOLUTION_FILES[@]}"; do
+              echo "  $solution_file" >&2
+            done
+
+            echo "The workflow cannot determine which solution to check." >&2
+            exit 1
+          fi
+
+          SOLUTION_FILE="${SOLUTION_FILES[0]}"
+
+          echo "Checking Objo solution:"
+          echo "  $SOLUTION_FILE"
+
+          "$OBJO_BIN" check "$SOLUTION_FILE"
+          
