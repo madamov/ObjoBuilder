@@ -40,18 +40,18 @@ jobs:
             -type f \
             -print
 
-       - name: Trust DreamHost SSH host key
-         shell: bash
-         run: |
-           set -euo pipefail
-       
-           mkdir -p ~/.ssh
-           chmod 700 ~/.ssh
-       
-           ssh-keyscan -H iad1-shared-b8-11.dreamhost.com >> ~/.ssh/known_hosts
-       
-           chmod 600 ~/.ssh/known_hosts
-           
+      - name: Trust DreamHost SSH host key
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          ssh-keyscan -H iad1-shared-b8-11.dreamhost.com >> ~/.ssh/known_hosts
+
+          chmod 600 ~/.ssh/known_hosts
+          
       - name: Upload Linux artifacts to SFTP
         shell: bash
         env:
