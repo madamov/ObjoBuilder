@@ -65,13 +65,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Installing Homebrew curl..."
-
-          brew install curl
+          if brew list --versions curl >/dev/null 2>&1; then
+            echo "Homebrew curl is already installed."
+          else
+            echo "Installing Homebrew curl..."
+            brew install curl
+          fi
 
           BREW_CURL="$(brew --prefix curl)/bin/curl"
 
-          echo "Using:"
+          if [[ ! -x "$BREW_CURL" ]]; then
+            echo "Homebrew curl was not found at:"
+            echo "  $BREW_CURL"
+            exit 1
+          fi
+
+          echo "Using Homebrew curl:"
           "$BREW_CURL" --version
 
           protocols="$(
@@ -84,7 +93,7 @@ jobs:
           )"
 
           if ! grep -qx "sftp" <<< "$protocols"; then
-            echo "Homebrew curl still does not support SFTP." >&2
+            echo "Homebrew curl does not support SFTP." >&2
             exit 1
           fi
 
