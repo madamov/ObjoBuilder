@@ -123,11 +123,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Installed curl version:"
+          echo "Homebrew curl version:"
           "$BREW_CURL" --version
 
           protocols="$(
-            "$BREW_CURL" |
+            "$BREW_CURL" --version |
               awk '
                 /^Protocols:/ {
                   for (i = 2; i <= NF; i++) {
@@ -138,17 +138,21 @@ jobs:
           )"
 
           if ! grep -qx "sftp" <<< "$protocols"; then
-            echo "The installed curl does not support the SFTP protocol." >&2
+            echo "Homebrew curl does not support the SFTP protocol." >&2
             exit 1
           fi
 
           if [[ ! -d "$LOCAL_ARTIFACT_DIR" ]]; then
-            echo "Artifact directory not found:"
-            echo "  $LOCAL_ARTIFACT_DIR"
+            echo "Artifact directory not found:" >&2
+            echo "  $LOCAL_ARTIFACT_DIR" >&2
             exit 1
           fi
 
-          mapfile -d '' files < <(
+          files=()
+
+          while IFS= read -r -d '' file; do
+            files+=("$file")
+          done < <(
             find "$LOCAL_ARTIFACT_DIR" \
               -maxdepth 1 \
               -type f \
@@ -156,7 +160,7 @@ jobs:
           )
 
           if (( ${#files[@]} == 0 )); then
-            echo "No files found to upload."
+            echo "No files found to upload." >&2
             exit 1
           fi
 
@@ -181,3 +185,4 @@ jobs:
           done
 
           echo "macOS artifacts uploaded successfully."
+        
