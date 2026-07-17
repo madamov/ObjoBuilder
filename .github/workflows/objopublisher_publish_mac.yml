@@ -32,6 +32,11 @@ jobs:
     needs: publish-macos
     runs-on: macos-latest
 
+    env:
+      SFTP_USER: ${{ secrets.BINARIES_USER }}
+      SFTP_PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
+      SFTP_BASE_URL: ${{ vars.SFTP_SERVER_URL }}
+
     steps:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
@@ -53,3 +58,96 @@ jobs:
         shell: bash
         run: |
           ls -lhR downloaded-artifacts
+
+      - name: Trust SFTP server SSH host key
+        if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$SFTP_BASE_URL" != sftp://* ]]; then
+            echo "SFTP_SERVER_URL must start with sftp://." >&2
+            exit 1
+          fi
+
+          SFTP_HOST="$(
+            printf '%s' "$SFTP_BASE_URL" |
+              sed -E 's#^sftp://([^/@]+@)?([^/:]+)(:[0-9]+)?/.*#\2#'
+          )"
+
+          echo "Adding SSH host key for $SFTP_HOST"
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          ssh-keyscan -H "$SFTP_HOST" >> "$HOME/.ssh/known_hosts"
+
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload macOS artifacts to SFTP
+        if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
+        shell: bash
+        env:
+          LOCAL_ARTIFACT_DIR: downloaded-artifacts/mygreatapp-macos-publish
+        run: |
+          set -euo pipefail
+
+          echo "Installed curl version:"
+          curl --version
+
+          protocols="$(
+            curl --version |
+              awk '
+                /^Protocols:/ {
+                  for (i = 2; i <= NF; i++) {
+                    print $i
+                  }
+                }
+              '
+          )"
+
+          if ! grep -qx "sftp" <<< "$protocols"; then
+            echo "The installed curl does not support the SFTP protocol." >&2
+            exit 1
+          fi
+
+          if [[ ! -d "$LOCAL_ARTIFACT_DIR" ]]; then
+            echo "Artifact directory not found:"
+            echo "  $LOCAL_ARTIFACT_DIR"
+            exit 1
+          fi
+
+          mapfile -d '' files < <(
+            find "$LOCAL_ARTIFACT_DIR" \
+              -maxdepth 1 \
+              -type f \
+              -print0
+          )
+
+          if (( ${#files[@]} == 0 )); then
+            echo "No files found to upload."
+            exit 1
+          fi
+
+          SFTP_DESTINATION="${SFTP_BASE_URL%/}/macos/"
+
+          echo "Uploading ${#files[@]} file(s) to:"
+          echo "  $SFTP_DESTINATION"
+
+          for file in "${files[@]}"; do
+            filename="$(basename "$file")"
+
+            echo "Uploading: $filename"
+
+            curl \
+              --fail \
+              --show-error \
+              --silent \
+              --ftp-create-dirs \
+              --user "$SFTP_USER:$SFTP_PASSWORD" \
+              --upload-file "$file" \
+              "${SFTP_DESTINATION}${filename}"
+          done
+
+          echo "macOS artifacts uploaded successfully."
+          
