@@ -39,3 +39,82 @@ jobs:
           find downloaded-artifacts \
             -type f \
             -print
+
+      - name: Upload Linux artifacts to SFTP
+        shell: bash
+        env:
+          SFTP_USER: ${{ secrets.BINARIES_USER }}
+          SFTP_PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
+          LOCAL_ARTIFACT_DIR: downloaded-artifacts/mygreatapp-linux-publish
+          SFTP_DESTINATION: sftp://iad1-shared-b8-11.dreamhost.com//home/objo_user/objo.adamov.rs/OurApps/MyGreatApp/linux/
+        run: |
+          set -euo pipefail
+
+          echo "Installed curl version:"
+          curl --version
+
+          protocols="$(
+            curl --version |
+              awk '
+                /^Protocols:/ {
+                  for (i = 2; i <= NF; i++) {
+                    print $i
+                  }
+                }
+              '
+          )"
+
+          if ! grep -qx "sftp" <<< "$protocols"; then
+            echo "The installed curl does not support the SFTP protocol." >&2
+            echo "Supported protocols:" >&2
+            printf '  %s\n' $protocols >&2
+            exit 1
+          fi
+
+          if [[ -z "$SFTP_USER" ]]; then
+            echo "BINARIES_USER is not configured." >&2
+            exit 1
+          fi
+
+          if [[ -z "$SFTP_PASSWORD" ]]; then
+            echo "BINARIES_PASSWORD is not configured." >&2
+            exit 1
+          fi
+
+          if [[ ! -d "$LOCAL_ARTIFACT_DIR" ]]; then
+            echo "Artifact directory was not found:" >&2
+            echo "  $LOCAL_ARTIFACT_DIR" >&2
+            exit 1
+          fi
+
+          mapfile -d '' files < <(
+            find "$LOCAL_ARTIFACT_DIR" \
+              -maxdepth 1 \
+              -type f \
+              -print0
+          )
+
+          if (( ${#files[@]} == 0 )); then
+            echo "No files were found to upload." >&2
+            exit 1
+          fi
+
+          echo "Uploading ${#files[@]} file(s) to:"
+          echo "  $SFTP_DESTINATION"
+
+          for file in "${files[@]}"; do
+            filename="$(basename "$file")"
+
+            echo "Uploading: $filename"
+
+            curl \
+              --fail \
+              --show-error \
+              --silent \
+              --ftp-create-dirs \
+              --user "$SFTP_USER:$SFTP_PASSWORD" \
+              --upload-file "$file" \
+              "${SFTP_DESTINATION}${filename}"
+          done
+
+          echo "Linux artifacts uploaded successfully."
