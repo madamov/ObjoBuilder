@@ -40,25 +40,44 @@ jobs:
             -type f \
             -print
 
-      - name: Trust DreamHost SSH host key
+      - name: Trust SFTP server SSH host key
+        if: secrets.BINARIES_USER != '' && secrets.BINARIES_PASSWORD != '' && vars.SFTP_SERVER_URL != ''
         shell: bash
+        env:
+          SFTP_BASE_URL: ${{ vars.SFTP_SERVER_URL }}
         run: |
           set -euo pipefail
+
+          if [[ -z "$SFTP_BASE_URL" ]]; then
+            echo "Repository variable SFTP_SERVER_URL is not configured." >&2
+            exit 1
+          fi
+
+          if [[ "$SFTP_BASE_URL" != sftp://* ]]; then
+            echo "SFTP_SERVER_URL must start with sftp://." >&2
+            exit 1
+          fi
+
+          # Extract hostname from sftp://host/path
+          SFTP_HOST="$(echo "$SFTP_BASE_URL" | sed -E 's#^sftp://([^/]+).*#\1#')"
+
+          echo "Adding SSH host key for $SFTP_HOST"
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          ssh-keyscan -H iad1-shared-b8-11.dreamhost.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$SFTP_HOST" >> ~/.ssh/known_hosts
 
           chmod 600 ~/.ssh/known_hosts
-          
+
       - name: Upload Linux artifacts to SFTP
+        if: secrets.BINARIES_USER != '' && secrets.BINARIES_PASSWORD != '' && vars.SFTP_SERVER_URL != ''
         shell: bash
         env:
           SFTP_USER: ${{ secrets.BINARIES_USER }}
           SFTP_PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
           LOCAL_ARTIFACT_DIR: downloaded-artifacts/mygreatapp-linux-publish
-          SFTP_DESTINATION: sftp://iad1-shared-b8-11.dreamhost.com//home/objo_user/objo.adamov.rs/OurApps/MyGreatApp/linux/
+          SFTP_BASE_URL: ${{ vars.SFTP_SERVER_URL }}
         run: |
           set -euo pipefail
 
@@ -93,6 +112,16 @@ jobs:
             exit 1
           fi
 
+          if [[ -z "$SFTP_BASE_URL" ]]; then
+            echo "Repository variable SFTP_SERVER_URL is not configured." >&2
+            exit 1
+          fi
+
+          if [[ "$SFTP_BASE_URL" != sftp://* ]]; then
+            echo "SFTP_SERVER_URL must start with sftp://." >&2
+            exit 1
+          fi
+
           if [[ ! -d "$LOCAL_ARTIFACT_DIR" ]]; then
             echo "Artifact directory was not found:" >&2
             echo "  $LOCAL_ARTIFACT_DIR" >&2
@@ -111,6 +140,9 @@ jobs:
             exit 1
           fi
 
+          # Remove any trailing slash before adding the platform directory.
+          SFTP_DESTINATION="${SFTP_BASE_URL%/}/linux/"
+
           echo "Uploading ${#files[@]} file(s) to:"
           echo "  $SFTP_DESTINATION"
 
@@ -124,9 +156,11 @@ jobs:
               --show-error \
               --silent \
               --ftp-create-dirs \
+              --knownhosts "$HOME/.ssh/known_hosts" \
               --user "$SFTP_USER:$SFTP_PASSWORD" \
               --upload-file "$file" \
               "${SFTP_DESTINATION}${filename}"
           done
 
           echo "Linux artifacts uploaded successfully."
+          
