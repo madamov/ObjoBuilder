@@ -33,32 +33,6 @@ jobs:
       azure-timestamp-url: ${{ secrets.AZURE_TIMESTAMPURL }}
 
   download-windows-artifact:
-    name: Download published Windows artifact
-    needs: publish-windows
-    runs-on: windows-latest
-
-    steps:
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: mygreatapp-windows-publish
-          path: downloaded-artifacts\mygreatapp-windows-publish
-
-      - name: Show downloaded files
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-
-          Write-Host "Downloaded artifact contents:"
-
-          Get-ChildItem `
-            -Path "downloaded-artifacts" `
-            -Recurse `
-            -File |
-            Select-Object FullName, Length |
-            Format-Table -AutoSize
-
-  download-windows-artifact:
     name: Download and upload published Windows artifact
     needs: publish-windows
     runs-on: windows-latest
