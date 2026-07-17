@@ -57,3 +57,167 @@ jobs:
             -File |
             Select-Object FullName, Length |
             Format-Table -AutoSize
+
+  download-windows-artifact:
+    name: Download and upload published Windows artifact
+    needs: publish-windows
+    runs-on: windows-latest
+
+    env:
+      SFTP_USER: ${{ secrets.BINARIES_USER }}
+      SFTP_PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
+      SFTP_BASE_URL: ${{ vars.SFTP_SERVER_URL }}
+
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mygreatapp-windows-publish
+          path: downloaded-artifacts\mygreatapp-windows-publish
+
+      - name: Show downloaded files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          Write-Host "Downloaded artifact contents:"
+
+          Get-ChildItem `
+            -Path "downloaded-artifacts" `
+            -Recurse `
+            -File |
+            Select-Object FullName, Length |
+            Format-Table -AutoSize
+
+      - name: Find SFTP-capable curl
+        if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $candidates = @(
+            "C:\Program Files\Git\mingw64\bin\curl.exe",
+            "C:\msys64\usr\bin\curl.exe",
+            "C:\Windows\System32\curl.exe"
+          )
+
+          $selectedCurl = $null
+
+          foreach ($candidate in $candidates) {
+            if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+              Write-Host "Not found: $candidate"
+              continue
+            }
+
+            Write-Host ""
+            Write-Host "Checking: $candidate"
+
+            $versionOutput = & $candidate --version
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Could not run $candidate"
+              continue
+            }
+
+            $versionOutput | ForEach-Object {
+              Write-Host $_
+            }
+
+            $protocolLine = $versionOutput |
+              Where-Object { $_ -match "^Protocols:" } |
+              Select-Object -First 1
+
+            if ($protocolLine -match "(^|\s)sftp(\s|$)") {
+              $selectedCurl = $candidate
+              break
+            }
+          }
+
+          if (-not $selectedCurl) {
+            throw "No installed curl executable supports SFTP."
+          }
+
+          Write-Host ""
+          Write-Host "Selected SFTP-capable curl:"
+          Write-Host "  $selectedCurl"
+
+          "SFTP_CURL=$selectedCurl" |
+            Out-File `
+              -FilePath $env:GITHUB_ENV `
+              -Encoding utf8 `
+              -Append
+
+      - name: Upload Windows artifacts to SFTP
+        if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
+        shell: pwsh
+        env:
+          LOCAL_ARTIFACT_DIR: downloaded-artifacts\mygreatapp-windows-publish
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if ([string]::IsNullOrWhiteSpace($env:SFTP_CURL)) {
+            throw "An SFTP-capable curl executable was not selected."
+          }
+
+          if (-not (Test-Path -LiteralPath $env:SFTP_CURL -PathType Leaf)) {
+            throw "Selected curl executable was not found: $env:SFTP_CURL"
+          }
+
+          Write-Host "Using curl:"
+          Write-Host "  $env:SFTP_CURL"
+
+          & $env:SFTP_CURL --version
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to run the selected curl executable."
+          }
+
+          if (-not $env:SFTP_BASE_URL.StartsWith("sftp://")) {
+            throw "SFTP_SERVER_URL must start with sftp://."
+          }
+
+          if (-not (Test-Path -LiteralPath $env:LOCAL_ARTIFACT_DIR -PathType Container)) {
+            throw "Artifact directory was not found: $env:LOCAL_ARTIFACT_DIR"
+          }
+
+          $files = @(
+            Get-ChildItem `
+              -LiteralPath $env:LOCAL_ARTIFACT_DIR `
+              -File
+          )
+
+          if ($files.Count -eq 0) {
+            throw "No Windows artifact files were found to upload."
+          }
+
+          $destination = "$($env:SFTP_BASE_URL.TrimEnd('/'))/windows/"
+
+          Write-Host ""
+          Write-Host "Uploading $($files.Count) file(s) to:"
+          Write-Host "  $destination"
+
+          foreach ($file in $files) {
+            $escapedFilename = [System.Uri]::EscapeDataString($file.Name)
+            $remoteUrl = "$destination$escapedFilename"
+
+            Write-Host ""
+            Write-Host "Uploading: $($file.Name)"
+
+            & $env:SFTP_CURL `
+              --fail `
+              --show-error `
+              --silent `
+              --insecure `
+              --ftp-create-dirs `
+              --user "${env:SFTP_USER}:${env:SFTP_PASSWORD}" `
+              --upload-file $file.FullName `
+              $remoteUrl
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Upload failed for $($file.Name), curl exit code $LASTEXITCODE."
+            }
+          }
+
+          Write-Host ""
+          Write-Host "Windows artifacts uploaded successfully."
+          
