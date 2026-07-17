@@ -142,12 +142,10 @@ jobs:
               --show-error \
               --silent \
               --ftp-create-dirs \
-              --knownhosts "$HOME/.ssh/known_hosts" \
               --user "$SFTP_USER:$SFTP_PASSWORD" \
               --upload-file "$file" \
               "${SFTP_DESTINATION}${filename}"
           done
 
           echo "Linux artifacts uploaded successfully."
-          
-          
+
