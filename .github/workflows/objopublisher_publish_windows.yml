@@ -67,59 +67,6 @@ jobs:
             Select-Object FullName, Length |
             Format-Table -AutoSize
 
-      - name: Trust SFTP server SSH host key
-        if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-
-          if (-not $env:SFTP_BASE_URL.StartsWith("sftp://")) {
-            throw "SFTP_SERVER_URL must start with sftp://."
-          }
-
-          try {
-            $sftpUri = [System.Uri]$env:SFTP_BASE_URL
-            $sftpHost = $sftpUri.Host
-            $sftpPort = $sftpUri.Port
-          }
-          catch {
-            throw "SFTP_SERVER_URL is not a valid SFTP URL."
-          }
-
-          if ([string]::IsNullOrWhiteSpace($sftpHost)) {
-            throw "Could not extract the hostname from SFTP_SERVER_URL."
-          }
-
-          Write-Host "Adding SSH host key for $sftpHost"
-
-          $sshDirectory = Join-Path $HOME ".ssh"
-          $knownHosts = Join-Path $sshDirectory "known_hosts"
-
-          New-Item `
-            -ItemType Directory `
-            -Path $sshDirectory `
-            -Force |
-            Out-Null
-
-          if ($sftpPort -gt 0 -and $sftpPort -ne 22) {
-            $hostKey = & ssh-keyscan.exe -p $sftpPort -H $sftpHost 2>$null
-          }
-          else {
-            $hostKey = & ssh-keyscan.exe -H $sftpHost 2>$null
-          }
-
-          if ($LASTEXITCODE -ne 0 -or -not $hostKey) {
-            throw "Failed to retrieve the SSH host key for $sftpHost."
-          }
-
-          $hostKey |
-            Out-File `
-              -FilePath $knownHosts `
-              -Encoding ascii `
-              -Append
-
-          Write-Host "SSH host key added to $knownHosts"
-
       - name: Upload Windows artifacts to SFTP
         if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
         shell: pwsh
@@ -191,15 +138,16 @@ jobs:
 
             Write-Host "Uploading: $($file.Name)"
 
-            & $curl.Source `
-              --fail `
-              --show-error `
-              --silent `
-              --ftp-create-dirs `
-              --user "${env:SFTP_USER}:${env:SFTP_PASSWORD}" `
-              --upload-file $file.FullName `
-              $remoteUrl
-
+             & $curl.Source `
+               --fail `
+               --show-error `
+               --silent `
+               --insecure `
+               --ftp-create-dirs `
+               --user "${env:SFTP_USER}:${env:SFTP_PASSWORD}" `
+               --upload-file $file.FullName `
+               $remoteUrl
+  
             if ($LASTEXITCODE -ne 0) {
               throw "Failed to upload $($file.Name). curl exited with code $LASTEXITCODE."
             }
