@@ -59,6 +59,37 @@ jobs:
         run: |
           ls -lhR downloaded-artifacts
 
+      - name: Install Homebrew curl with SFTP support
+        if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Installing Homebrew curl..."
+
+          brew install curl
+
+          BREW_CURL="$(brew --prefix curl)/bin/curl"
+
+          echo "Using:"
+          "$BREW_CURL" --version
+
+          protocols="$(
+            "$BREW_CURL" --version |
+              awk '
+                /^Protocols:/ {
+                  for (i = 2; i <= NF; i++) print $i
+                }
+              '
+          )"
+
+          if ! grep -qx "sftp" <<< "$protocols"; then
+            echo "Homebrew curl still does not support SFTP." >&2
+            exit 1
+          fi
+
+          echo "BREW_CURL=$BREW_CURL" >> "$GITHUB_ENV"
+
       - name: Trust SFTP server SSH host key
         if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
         shell: bash
@@ -93,10 +124,10 @@ jobs:
           set -euo pipefail
 
           echo "Installed curl version:"
-          curl --version
+          "$BREW_CURL" --version
 
           protocols="$(
-            curl --version |
+            "$BREW_CURL" |
               awk '
                 /^Protocols:/ {
                   for (i = 2; i <= NF; i++) {
@@ -139,7 +170,7 @@ jobs:
 
             echo "Uploading: $filename"
 
-            curl \
+            "$BREW_CURL" \
               --fail \
               --show-error \
               --silent \
@@ -150,4 +181,3 @@ jobs:
           done
 
           echo "macOS artifacts uploaded successfully."
-          
