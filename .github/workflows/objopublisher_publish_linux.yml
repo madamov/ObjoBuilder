@@ -5,8 +5,7 @@ on:
 
 jobs:
   publish-linux:
-#    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@v1
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@1-determine-latest-version-number-from-stablejson-file
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@v1
 
     with:
       solution-file: MyGreatApp.objosln
@@ -15,7 +14,7 @@ jobs:
       output-directory: Publish
       targets: "linux-x64"
       artifact-name: mygreatapp-linux-publish
-      objo-version: "26.7.2"
+      # objo-version: "26.7.2"
 
     secrets:
       objo-license: ${{ secrets.OBJO_LICENSE }}
