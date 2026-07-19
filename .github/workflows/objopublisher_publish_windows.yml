@@ -5,7 +5,7 @@ on:
 
 jobs:
   publish-windows:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@main
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@v1
 
     with:
       solution-file: MyGreatApp.objosln
