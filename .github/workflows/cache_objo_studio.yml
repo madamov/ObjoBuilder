@@ -46,7 +46,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /Applications/Objo Studio.app
-          key: objo-studio-macos-${{ steps.version.outputs.version }}
+          key: objo-studio-macos-${{ steps.latest.outputs.version }}
 
       - name: Download and install Objo Studio
         if: steps.cache-objo.outputs.cache-hit != 'true'
@@ -122,7 +122,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /opt/objo-studio
-          key: objo-studio-linux-${{ steps.version.outputs.version }}
+          key: objo-studio-linux-${{ steps.latest.outputs.version }}
 
       - name: Download and extract Objo Studio
         if: steps.cache-objo.outputs.cache-hit != 'true'
@@ -173,7 +173,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\Objo
-          key: objo-studio-windows-${{ steps.version.outputs.version }}
+          key: objo-studio-windows-${{ steps.latest.outputs.version }}
 
       - name: Download and extract Objo Studio portable
         if: steps.cache-objo.outputs.cache-hit != 'true'
