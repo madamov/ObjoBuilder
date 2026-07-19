@@ -15,6 +15,7 @@ jobs:
       output-directory: Publish
       targets: "linux-x64"
       artifact-name: mygreatapp-linux-publish
+      objo-version: "26.7.2"
 
     secrets:
       objo-license: ${{ secrets.OBJO_LICENSE }}
