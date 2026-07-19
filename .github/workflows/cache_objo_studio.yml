@@ -23,7 +23,7 @@ jobs:
           curl -fsSL "$JSON_URL" -o stable.json
       
           VERSION="$(jq -r '.version' stable.json)"
-          DOWNLOAD_URL="$(jq -r '.downloads.linux.url' stable.json)"
+          DOWNLOAD_URL="$(jq -r '.downloads.macos.url' stable.json)"
       
           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
             echo "Failed to determine latest version."
@@ -99,7 +99,7 @@ jobs:
           curl -fsSL "$JSON_URL" -o stable.json
       
           VERSION="$(jq -r '.version' stable.json)"
-          DOWNLOAD_URL="$(jq -r '.downloads.macos.url' stable.json)"
+          DOWNLOAD_URL="$(jq -r '.downloads.linux.url' stable.json)"
       
           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
             echo "Failed to determine latest version."
