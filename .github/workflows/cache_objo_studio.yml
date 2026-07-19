@@ -23,8 +23,8 @@ jobs:
           curl -fsSL "$JSON_URL" -o stable.json
       
           VERSION="$(jq -r '.version' stable.json)"
-          DOWNLOAD_URL="$(jq -r '.downloads.macos.url' stable.json)"
-      
+          DOWNLOAD_URL="$(jq -r '.downloads.macos.variant_items[0].url' stable.json)"      
+
           if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
             echo "Failed to determine latest version."
             exit 1
@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ steps.latest.outputs.version }}"
           URL="${{ steps.latest.outputs.download_url }}"
           DMG="$(basename "$URL")"
 
@@ -130,7 +130,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ steps.latest.outputs.version }}"
           URL=${{ steps.latest.outputs.download_url }}
           ARCHIVE="$(basename "$URL")"
 
@@ -179,7 +179,7 @@ jobs:
         if: steps.cache-objo.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $version = "${{ steps.version.outputs.version }}"
+          $version = "${{ steps.latest.outputs.version }}"
           $url = "${{ steps.latest.outputs.download_url }}"
           $zip = Split-Path $url -Leaf
 
