@@ -22,7 +22,7 @@
       "ApplicationIdentifier": "",
       "BundleIdentifier": "",
       "DisplayName": "",
-      "PublisherName": "",
+      "PublisherName": "Adamov konsultacije d.o.o.",
       "Copyright": ""
     },
     "DesktopBehavior": {
@@ -59,7 +59,7 @@
       "InstallDirectoryName": "",
       "CreateDesktopShortcut": false,
       "MacDmgBackground": "",
-      "WindowsPackageDisplayName": "",
+      "WindowsPackageDisplayName": "MatrikulaApp",
       "LinuxDesktopEntryName": "",
       "LinuxCategories": "Utility;"
     },
