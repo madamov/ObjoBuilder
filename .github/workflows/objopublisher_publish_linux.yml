@@ -5,8 +5,7 @@ on:
 
 jobs:
   publish-linux:
-#    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@v1
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@1-determine-latest-version-number-from-stablejson-file
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@v1
 
     with:
       solution-file: MyGreatApp.objosln
