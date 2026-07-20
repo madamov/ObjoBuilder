@@ -5,7 +5,8 @@ on:
 
 jobs:
   publish-windows:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@v1
+#    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@v1
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@1-determine-latest-version-number-from-stablejson-file
 
     with:
       solution-file: MyGreatApp.objosln
