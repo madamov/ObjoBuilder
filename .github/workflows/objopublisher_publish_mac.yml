@@ -17,7 +17,7 @@ jobs:
       # targets: osx-x64
 
       # Optional. Leave this out to detect the latest version.
-      objo-version: 26.7.1
+      # objo-version: 26.7.1
 
     secrets:
       apple-certificate: ${{ secrets.APPLE_CERTIFICATE }}
