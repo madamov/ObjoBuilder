@@ -96,12 +96,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          cleanup() {
-            "$OBJO_BIN" license deactivate || true
-          }
-
-          trap cleanup EXIT
-
           mapfile -d '' SOLUTION_FILES < <(
             find "$GITHUB_WORKSPACE" \
               -type f \
@@ -132,3 +126,24 @@ jobs:
 
           "$OBJO_BIN" check "$SOLUTION_FILE"
           
+      - name: Deactivate Objo license
+        if: always()
+        shell: bash
+        run: |
+          set +e
+
+          if [[ -z "${OBJO_BIN:-}" ]]; then
+            echo "Objo executable was not configured; skipping license deactivation."
+            exit 0
+          fi
+
+          echo "Deactivating Objo license..."
+          "$OBJO_BIN" license deactivate
+
+          exit_code=$?
+
+          if (( exit_code != 0 )); then
+            echo "Warning: Objo license deactivation returned exit code $exit_code." >&2
+          fi
+
+          exit 0
