@@ -17,7 +17,7 @@ jobs:
       targets: win-x64
 
       # Optional. Leave this out to detect the latest version.
-       objo-version: 26.7.3
+      objo-version: 26.7.3
 
       # Optional. Defaults to application-name plus GitHub run ID.
       # azure-correlation-id: mygreatapp-${{ github.run_id }}
