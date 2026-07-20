@@ -45,9 +45,7 @@ jobs:
           find downloaded-artifacts \
             -type f \
             -print
-            
-          ls -alR Publish/
-          
+
 
       - name: Trust SFTP server SSH host key
         if: env.SFTP_USER != '' && env.SFTP_PASSWORD != '' && env.SFTP_BASE_URL != ''
