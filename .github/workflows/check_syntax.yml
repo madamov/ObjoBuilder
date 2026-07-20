@@ -12,25 +12,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest version
-        id: version
+      - name: Get latest Objo Studio release information
+        id: latest
+        if: inputs.objo-version == ''
         shell: bash
         run: |
-          VERSION=$(
-            curl -fsSL https://objo.dev/download |
-            grep -oE 'Latest version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' |
-            head -n1 |
-            sed -E 's/Latest version:[[:space:]]*//'
-          )
-
+          set -euo pipefail
+      
+          JSON_URL="https://objo.dev/releases/stable.json"
+      
+          curl -fsSL "$JSON_URL" -o stable.json
+      
+          VERSION="$(jq -r '.version' stable.json)"
+          DOWNLOAD_URL="$(jq -r '.downloads.linux.url' stable.json)"
+      
+          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            echo "Failed to determine latest version."
+            exit 1
+          fi
+      
+          if [[ -z "$DOWNLOAD_URL" || "$DOWNLOAD_URL" == "null" ]]; then
+            echo "Failed to determine Linux download URL."
+            exit 1
+          fi
+      
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
+      
+          echo "Latest version: $VERSION"
+          echo "Download URL: $DOWNLOAD_URL"
 
       - name: Restore Objo Studio cache
         id: cache-objo
         uses: actions/cache@v4
         with:
           path: /opt/objo-studio
-          key: objo-studio-linux-${{ steps.version.outputs.version }}
+          key: objo-studio-linux-${{ steps.latest.outputs.version }}
 
       - name: Download and extract Objo Studio
         if: steps.cache-objo.outputs.cache-hit != 'true'
@@ -38,15 +55,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          VERSION="${{ steps.version.outputs.version }}"
-          ARCHIVE="Objo-Studio-${VERSION}-linux-x64.tar.gz"
-          URL="https://downloads.objo.dev/releases/${VERSION}/${ARCHIVE}"
+          VERSION="${{ steps.latest.outputs.version }}"
+          URL=${{ steps.latest.outputs.download_url }}
+          ARCHIVE="$(basename "$URL")"
 
           mkdir -p /opt/objo-studio
 
           curl -fL "$URL" -o "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C /opt/objo-studio
-
+          
+          
       - name: Find Objo executable
         shell: bash
         run: |
