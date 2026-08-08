@@ -46,11 +46,6 @@ jobs:
     needs: publish-windows
     runs-on: windows-latest
 
-    env:
-      SFTP_USER: ${{ secrets.BINARIES_USER }}
-      SFTP_PASSWORD: ${{ secrets.BINARIES_PASSWORD }}
-      SFTP_BASE_URL: ${{ vars.SFTP_SERVER_URL }}
-
     steps:
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
