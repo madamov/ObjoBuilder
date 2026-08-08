@@ -1,0 +1,82 @@
+name: ObjoPublisher for Linux
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-linux:
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_linux.yml@4-upload-built-files-to-sftp-server
+    with:
+      solution-file: MyGreatApp.objosln
+      project-file: Projects/MyGreatApp/project.json
+      application-name: MyGreatApp
+      output-directory: Publish
+      sftp-url: ${{ vars.SFTP_SERVER_URL }}
+      fail-on-sftp-error: true
+    
+    secrets:
+      objo-license: ${{ secrets.OBJO_LICENSE }}
+      sftp-username: ${{ secrets.BINARIES_USER }}
+      sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+    
+  download-linux-artifact:
+    name: Download published Linux artifact
+    needs: publish-linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mygreatapp-linux-publish
+          path: downloaded-artifacts/mygreatapp-linux-publish
+
+      - name: Show downloaded files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Downloaded artifact contents:"
+          find downloaded-artifacts \
+            -type f \
+            -print
+
+  workflow-summary:
+    name: Workflow summary
+    if: always()
+    needs:
+      - publish-linux
+      - download-linux-artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate summary
+        shell: bash
+        run: |
+          {
+            echo "# Linux Publish Summary"
+            echo
+
+            echo "| Item | Result |"
+            echo "|------|--------|"
+            echo "| Publish job | ${{ needs.publish-linux.result }} |"
+            echo "| SFTP upload | ${{ needs.publish-linux.outputs.sftp-upload }} |"
+            echo "| Artifact download | ${{ needs.download-linux-artifact.result }} |"
+            echo
+
+            case "${{ needs.publish-linux.outputs.sftp-upload }}" in
+              success)
+                echo "✅ Artifacts uploaded to the SFTP server."
+                ;;
+              failed)
+                echo "❌ SFTP upload failed."
+                ;;
+              skipped)
+                echo "➖ SFTP upload skipped."
+                ;;
+              "")
+                echo "➖ No SFTP status reported."
+                ;;
+            esac
+          } >> "$GITHUB_STEP_SUMMARY"
+
