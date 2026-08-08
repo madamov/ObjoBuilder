@@ -42,7 +42,7 @@ jobs:
       sftp-password: ${{ secrets.BINARIES_PASSWORD }}
 
   download-windows-artifact:
-    name: Download and upload published Windows artifact
+    name: Download published Windows artifact
     needs: publish-windows
     runs-on: windows-latest
 
