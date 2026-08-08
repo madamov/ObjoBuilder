@@ -1,4 +1,4 @@
-name: ObjoPublisher for Linux
+name:Linux publish with SFTP upload
 
 on:
   workflow_dispatch:
