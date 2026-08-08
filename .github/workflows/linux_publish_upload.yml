@@ -13,7 +13,8 @@ jobs:
       output-directory: Publish
       sftp-url: ${{ vars.SFTP_SERVER_URL }}
       fail-on-sftp-error: true
-    
+      artifact-name: mygreatapp-linux-publish
+
     secrets:
       objo-license: ${{ secrets.OBJO_LICENSE }}
       sftp-username: ${{ secrets.BINARIES_USER }}
