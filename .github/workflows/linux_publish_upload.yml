@@ -1,4 +1,4 @@
-name:Linux publish with SFTP upload
+name: Linux publish with SFTP upload
 
 on:
   workflow_dispatch:
