@@ -1,0 +1,60 @@
+name: macOS Publish with SFTP upload
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-macos:
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@4-upload-built-files-to-sftp-server
+    
+    with:
+      solution-file: MyGreatApp.objosln
+      project-file: Projects/MyGreatApp/project.json
+      application-name: MyGreatApp
+      artifact-name: mygreatapp-macos-publish
+      apple-notary-profile: mygreatapp-notarization
+      # targets: osx-x64
+
+      # Optional. Leave this out to detect the latest version.
+      # objo-version: 26.7.1
+      sftp-url: ${{ vars.SFTP_SERVER_URL }}
+      fail-on-sftp-error: true
+      
+    secrets:
+      apple-certificate: ${{ secrets.APPLE_CERTIFICATE }}
+      apple-certificate-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      apple-app-specific-password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      objo-license: ${{ secrets.OBJO_LICENSE }}
+      apple-certificate-name: ${{ secrets.APPLE_CERTIFICATE_NAME }}
+      apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+      apple-id: ${{ secrets.APPLE_ID }}
+
+      sftp-username: ${{ secrets.BINARIES_USER }}
+      sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+
+  download-macos-artifact:
+    name: Download published macOS artifacts
+    needs: publish-macos
+    runs-on: macos-latest
+
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mygreatapp-macos-publish
+          path: downloaded-artifacts/mygreatapp-macos-publish
+
+      - name: Show downloaded files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Downloaded artifact contents:"
+          find downloaded-artifacts \
+            -type f \
+            -print
+
+      - name: Show file details
+        shell: bash
+        run: |
+          ls -lhR downloaded-artifacts
