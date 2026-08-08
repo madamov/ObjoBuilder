@@ -5,7 +5,7 @@ on:
 
 jobs:
   publish-macos:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@4-upload-built-files-to-sftp-server
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@v1
     
     with:
       solution-file: MyGreatApp.objosln
