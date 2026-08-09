@@ -5,7 +5,7 @@ on:
 
 jobs:
   publish-windows:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@8-when-some-sftp-secrets-or-vars-are-missing-but-not-all-handle-as-error
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@v1
 
     with:
       solution-file: MyGreatApp.objosln
