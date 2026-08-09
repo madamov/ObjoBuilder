@@ -38,7 +38,7 @@ jobs:
       # Optional
       azure-timestamp-url: ${{ secrets.AZURE_TIMESTAMPURL }}
 
-      # sftp-username: ${{ secrets.BINARIES_USER }}
+      sftp-username: ${{ secrets.BINARIES_USER }}
       sftp-password: ${{ secrets.BINARIES_PASSWORD }}
       sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
 
