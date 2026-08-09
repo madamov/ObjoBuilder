@@ -5,7 +5,7 @@ on:
 
 jobs:
   publish-windows:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@6-add-ssh-host-key-for-sftp-server
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@8-when-some-sftp-secrets-or-vars-are-missing-but-not-all-handle-as-error
 
     with:
       solution-file: MyGreatApp.objosln
