@@ -31,9 +31,9 @@ Three additional example workflows demonstrate the new built-in SFTP support in 
 
 | Workflow | Description |
 |----------|-------------|
-| `objopublisher_publish_macos_sftp.yml` | Publishes macOS DMG files and lets the reusable ObjoPublisher workflow upload them directly to SFTP. |
-| `objopublisher_publish_linux_sftp.yml` | Publishes Linux archives and lets the reusable ObjoPublisher workflow upload them directly to SFTP. |
-| `objopublisher_publish_windows_sftp.yml` | Publishes and signs Windows MSIX packages and lets the reusable ObjoPublisher workflow upload them directly to SFTP. |
+| `macos_publish_upload.yml` | Publishes macOS DMG files and lets the reusable ObjoPublisher workflow upload them directly to SFTP. |
+| `linux_publish_upload.yml` | Publishes Linux archives and lets the reusable ObjoPublisher workflow upload them directly to SFTP. |
+| `windows_publish_upload.yml` | Publishes and signs Windows MSIX packages and lets the reusable ObjoPublisher workflow upload them directly to SFTP. |
 
 The original workflows remain available to demonstrate the alternative approach where the calling workflow downloads the GitHub Actions artifacts and performs the SFTP upload itself.
 
@@ -63,7 +63,7 @@ ObjoBuilder demonstrates two ways of uploading published applications to an SFTP
 
 ## Built-in ObjoPublisher SFTP upload
 
-The newer `_sftp` example workflows pass SFTP configuration directly to the reusable ObjoPublisher workflows.
+The newer `_upload` example workflows pass SFTP configuration directly to the reusable ObjoPublisher workflows.
 
 The relevant reusable workflow inputs are:
 
@@ -73,19 +73,22 @@ with:
   fail-on-sftp-error: true
 ```
 
-SFTP credentials are passed as reusable workflow secrets:
+SFTP credentials and SFTP host fingerprint are passed as reusable workflow secrets:
 
 ```yaml
 secrets:
   sftp-username: ${{ secrets.BINARIES_USER }}
   sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+  sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
 ```
+**On Windows only RSA SHA256 is accepted, version of curl in Windows runners doesn't support ECDSA or ED25519.** If you want higher security on Linux or macOS you can create two repository secrets: one for Windows holding SHA256 RSA key format, the other holding SHA256 ED25519 or ECDSA key formats, then you pass first one (SFTP_HOST_FINGERPRINT_WINDOWS) to Windows publishing workflow, second one (SFTP_HOST_FINGERPRINT) to Linux and/or macOS workflows.
 
-SFTP upload is performed only when all three values are available:
+SFTP upload is performed only when all four values are available:
 
 - `sftp-url`
 - `sftp-username`
 - `sftp-password`
+- `sftp-host-fingerprint`
 
 If any one of these values is missing or empty, the SFTP upload is skipped and publishing continues normally.
 
@@ -174,6 +177,7 @@ Required only when SFTP upload is enabled.
 |---------|-------------|
 | `BINARIES_USER` | Username used to authenticate with the SFTP server. |
 | `BINARIES_PASSWORD` | Password used to authenticate with the SFTP server. |
+| `SFTP_HOST_FINGERPRINT` | Expected SHA256 (RSA, ECDSA and ED25519 are all supported) fingerprint of the SFTP server’s SSH host key. |
 
 The SFTP server URL is normally stored as a GitHub repository variable rather than a secret:
 
@@ -191,6 +195,7 @@ with:
 secrets:
   sftp-username: ${{ secrets.BINARIES_USER }}
   sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+  sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
 ```
 
 If the URL, username or password is missing or empty, the reusable workflow skips SFTP upload.
@@ -395,6 +400,8 @@ jobs:
       objo-license: ${{ secrets.OBJO_LICENSE }}
       sftp-username: ${{ secrets.BINARIES_USER }}
       sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+      sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
+
 ```
 
 Equivalent examples are included in this repository for macOS and Windows.
