@@ -31,6 +31,7 @@ jobs:
 
       sftp-username: ${{ secrets.BINARIES_USER }}
       sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+      sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
 
   download-macos-artifact:
     name: Download published macOS artifacts

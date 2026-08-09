@@ -20,7 +20,8 @@ jobs:
       objo-license: ${{ secrets.OBJO_LICENSE }}
       sftp-username: ${{ secrets.BINARIES_USER }}
       sftp-password: ${{ secrets.BINARIES_PASSWORD }}
-    
+      sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
+
   download-linux-artifact:
     name: Download published Linux artifact
     needs: publish-linux

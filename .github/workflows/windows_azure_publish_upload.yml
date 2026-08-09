@@ -40,6 +40,7 @@ jobs:
 
       sftp-username: ${{ secrets.BINARIES_USER }}
       sftp-password: ${{ secrets.BINARIES_PASSWORD }}
+      sftp-host-fingerprint: ${{ secrets.SFTP_HOST_FINGERPRINT }}
 
   download-windows-artifact:
     name: Download published Windows artifact
