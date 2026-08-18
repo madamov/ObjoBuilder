@@ -15,6 +15,7 @@ jobs:
       sftp-url: ${{ vars.SFTP_SERVER_URL }}
       fail-on-sftp-error: true
       artifact-name: mygreatapp-linux-publish
+      objo-version: 26.8.1
 
     secrets:
       objo-license: ${{ secrets.OBJO_LICENSE }}
