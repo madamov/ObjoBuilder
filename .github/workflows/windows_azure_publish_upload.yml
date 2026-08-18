@@ -16,7 +16,7 @@ jobs:
       targets: win-x64
       sftp-url: ${{ vars.SFTP_SERVER_URL }}
       fail-on-sftp-error: true
-      windows-format: folder
+      windows-format: zip
 
       # Optional. Leave this out to detect the latest version.
       # objo-version: 26.7.3
