@@ -5,7 +5,7 @@ on:
 
 jobs:
   publish-windows:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@18-implement-new-license-activation-call-since-objo-studio-2684
+    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_windows.yml@19-objo-studio-can-publish-portable-zip-archive-on-windows-since-version-2684
 
     with:
       solution-file: MyGreatApp.objosln
