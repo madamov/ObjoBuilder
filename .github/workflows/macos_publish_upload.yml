@@ -5,8 +5,9 @@ on:
 
 jobs:
   publish-macos:
-    uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@v1
-    
+    # uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@v1
+        uses: madamov/ObjoPublisher/.github/workflows/publish_objo_macos.yml@v18-implement-new-license-activation-call-since-objo-studio-2684
+        
     with:
       solution-file: MyGreatApp.objosln
       project-file: Projects/MyGreatApp/project.json
